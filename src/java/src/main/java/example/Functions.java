@@ -49,4 +49,24 @@ public class Functions
 	{
 		return p;
 	}
+
+	public static long f10a(long p)
+	{
+		return p;
+	}
+
+	public static Long f10b(Long p)
+	{
+		return p;
+	}
+
+	public static boolean f11a(boolean p)
+	{
+		return p;
+	}
+
+	public static Boolean f11b(Boolean p)
+	{
+		return p;
+	}
 }

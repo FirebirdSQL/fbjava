@@ -65,6 +65,7 @@ class ExternalEngine implements IExternalEngineIntf
 		javaClassesByName = new HashMap<>();
 		defaultDataTypes = new HashMap<>();
 
+		// int, Integer
 		addDataType(new DataType() {
 			@Override
 			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
@@ -97,6 +98,40 @@ class ExternalEngine implements IExternalEngineIntf
 			}
 		}, new DataTypeReg(int.class, "int"), new DataTypeReg(Integer.class, "Integer", "java.lang.Integer"));
 
+		// long, Long
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				builder.setType(status, index, ISCConstants.SQL_INT64);
+				builder.setScale(status, index, 0);
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					{
+						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
+							(javaClass == long.class ? (Long) 0L : null) :
+							(Long) message.getLong(offset);
+					}
+
+					@Override
+					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+							message.setLong(offset, (long) o);
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(long.class, "long"), new DataTypeReg(Long.class, "Long", "java.lang.Long"));
+
+		// double, Double
 		addDataType(new DataType() {
 			@Override
 			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
@@ -128,6 +163,7 @@ class ExternalEngine implements IExternalEngineIntf
 			}
 		}, new DataTypeReg(double.class, "double"), new DataTypeReg(Double.class, "Double", "java.lang.Double"));
 
+		// BigDecimal
 		addDataType(new DataType() {
 			@Override
 			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
@@ -248,6 +284,39 @@ class ExternalEngine implements IExternalEngineIntf
 			}
 		}, new DataTypeReg(BigDecimal.class, "java.math.BigDecimal"));
 
+		// boolean, Boolean
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				builder.setType(status, index, ISCConstants.SQL_BOOLEAN);
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					{
+						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
+							(javaClass == boolean.class ? (Boolean) false : null) :
+							(Boolean) (message.getByte(offset) != 0);
+					}
+
+					@Override
+					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+							message.setByte(offset, (byte) ((boolean) o ? 1 : 0));
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(boolean.class, "boolean"), new DataTypeReg(Boolean.class, "Boolean", "java.lang.Boolean"));
+
+		// Object
 		addDataType(new DataType() {
 			@Override
 			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
@@ -273,6 +342,7 @@ class ExternalEngine implements IExternalEngineIntf
 		defaultDataTypes.put(ISCConstants.SQL_SHORT, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_LONG, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_DOUBLE, dataTypesByClass.get(Double.class));
+		defaultDataTypes.put(ISCConstants.SQL_BOOLEAN, dataTypesByClass.get(Boolean.class));
 	}
 
 	private static void addDataType(DataType dataType, DataTypeReg... dataTypesReg)
