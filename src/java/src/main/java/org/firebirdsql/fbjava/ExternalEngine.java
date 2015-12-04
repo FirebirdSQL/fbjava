@@ -26,8 +26,20 @@ class ExternalEngine implements IExternalEngineIntf
 {
 	private static Map<Integer, String> fbTypeNames;
 	private static Map<Class<?>, DataType> dataTypesByClass;
-	private static Map<String, DataType> dataTypesByName;
+	private static Map<String, Class<?>> javaClassesByName;
 	private static Map<Integer, DataType> defaultDataTypes;
+
+	private static class DataTypeReg
+	{
+		DataTypeReg(Class<?> javaClass, String... names)
+		{
+			this.javaClass = javaClass;
+			this.names = names;
+		}
+
+		Class<?> javaClass;
+		String[] names;
+	}
 
 	static
 	{
@@ -50,25 +62,13 @@ class ExternalEngine implements IExternalEngineIntf
 		fbTypeNames.put(ISCConstants.SQL_NULL, "NULL");
 
 		dataTypesByClass = new HashMap<>();
-		dataTypesByName = new HashMap<>();
+		javaClassesByName = new HashMap<>();
 		defaultDataTypes = new HashMap<>();
 
 		addDataType(new DataType() {
 			@Override
-			String[] getNames()
-			{
-				return new String[] {"int"};
-			}
-
-			@Override
-			Class<?> getJavaClass()
-			{
-				return int.class;
-			}
-
-			@Override
-			Conversion buildMetadata(IStatus status, IMessageMetadata metadata, IMetadataBuilder builder, int index)
-				throws FbException
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_LONG);
 				builder.setScale(status, index, 0);
@@ -77,7 +77,9 @@ class ExternalEngine implements IExternalEngineIntf
 					@Override
 					Object getFromMessage(Pointer message, int nullOffset, int offset)
 					{
-						return message.getShort(nullOffset) != NOT_NULL_FLAG ? 0 : message.getInt(offset);
+						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
+							(javaClass == int.class ? (Integer) 0 : null) :
+							(Integer) message.getInt(offset);
 					}
 
 					@Override
@@ -93,66 +95,12 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 				};
 			}
-		});
+		}, new DataTypeReg(int.class, "int"), new DataTypeReg(Integer.class, "Integer", "java.lang.Integer"));
 
 		addDataType(new DataType() {
 			@Override
-			String[] getNames()
-			{
-				return new String[] {"Integer", "java.lang.Integer"};
-			}
-
-			@Override
-			Class<?> getJavaClass()
-			{
-				return Integer.class;
-			}
-
-			@Override
-			Conversion buildMetadata(IStatus status, IMessageMetadata metadata, IMetadataBuilder builder, int index)
-				throws FbException
-			{
-				builder.setType(status, index, ISCConstants.SQL_LONG);
-				builder.setScale(status, index, 0);
-
-				return new Conversion() {
-					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
-					{
-						return message.getShort(nullOffset) != NOT_NULL_FLAG ? null : message.getInt(offset);
-					}
-
-					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
-					{
-						if (o == null)
-							message.setShort(nullOffset, NULL_FLAG);
-						else
-						{
-							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setInt(offset, (int) o);
-						}
-					}
-				};
-			}
-		});
-
-		addDataType(new DataType() {
-			@Override
-			String[] getNames()
-			{
-				return new String[] {"double"};
-			}
-
-			@Override
-			Class<?> getJavaClass()
-			{
-				return double.class;
-			}
-
-			@Override
-			Conversion buildMetadata(IStatus status, IMessageMetadata metadata, IMetadataBuilder builder, int index)
-				throws FbException
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_DOUBLE);
 
@@ -160,7 +108,9 @@ class ExternalEngine implements IExternalEngineIntf
 					@Override
 					Object getFromMessage(Pointer message, int nullOffset, int offset)
 					{
-						return message.getShort(nullOffset) != NOT_NULL_FLAG ? 0 : message.getDouble(offset);
+						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
+							(javaClass == double.class ? (Double) 0.0 : null) :
+							(Double) message.getDouble(offset);
 					}
 
 					@Override
@@ -176,65 +126,12 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 				};
 			}
-		});
+		}, new DataTypeReg(double.class, "double"), new DataTypeReg(Double.class, "Double", "java.lang.Double"));
 
 		addDataType(new DataType() {
 			@Override
-			String[] getNames()
-			{
-				return new String[] {"Double", "java.lang.Double"};
-			}
-
-			@Override
-			Class<?> getJavaClass()
-			{
-				return Double.class;
-			}
-
-			@Override
-			Conversion buildMetadata(IStatus status, IMessageMetadata metadata, IMetadataBuilder builder, int index)
-				throws FbException
-			{
-				builder.setType(status, index, ISCConstants.SQL_DOUBLE);
-
-				return new Conversion() {
-					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
-					{
-						return message.getShort(nullOffset) != NOT_NULL_FLAG ? null : message.getDouble(offset);
-					}
-
-					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
-					{
-						if (o == null)
-							message.setShort(nullOffset, NULL_FLAG);
-						else
-						{
-							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setDouble(offset, (double) o);
-						}
-					}
-				};
-			}
-		});
-
-		addDataType(new DataType() {
-			@Override
-			String[] getNames()
-			{
-				return new String[] {"java.math.BigDecimal"};
-			}
-
-			@Override
-			Class<?> getJavaClass()
-			{
-				return BigDecimal.class;
-			}
-
-			@Override
-			Conversion buildMetadata(IStatus status, IMessageMetadata metadata, IMetadataBuilder builder, int index)
-				throws FbException
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
 			{
 				int initialType = metadata.getType(status, index);
 				int initialScale = metadata.getScale(status, index);
@@ -349,24 +246,12 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 				};
 			}
-		});
+		}, new DataTypeReg(BigDecimal.class, "java.math.BigDecimal"));
 
 		addDataType(new DataType() {
 			@Override
-			String[] getNames()
-			{
-				return new String[] {"Object", "java.lang.Object"};
-			}
-
-			@Override
-			Class<?> getJavaClass()
-			{
-				return Object.class;
-			}
-
-			@Override
-			Conversion buildMetadata(IStatus status, IMessageMetadata metadata, IMetadataBuilder builder, int index)
-				throws FbException
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
 			{
 				int type = metadata.getType(status, index);
 				DataType defaultType = defaultDataTypes.get(type);
@@ -381,19 +266,21 @@ class ExternalEngine implements IExternalEngineIntf
 						String.format("Cannot use Java Object type for the Firebird type '%s'.", typeName));
 				}
 
-				return defaultType.buildMetadata(status, metadata, builder, index);
+				return defaultType.setupConversion(status, javaClass, metadata, builder, index);
 			}
-		});
+		}, new DataTypeReg(Object.class, "Object", "java.lang.Object"));
 
 		defaultDataTypes.put(ISCConstants.SQL_SHORT, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_LONG, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_DOUBLE, dataTypesByClass.get(Double.class));
 	}
 
-	private static void addDataType(DataType dataType)
+	private static void addDataType(DataType dataType, DataTypeReg... dataTypesReg)
 	{
-		dataTypesByClass.put(dataType.getJavaClass(), dataType);
-		Arrays.stream(dataType.getNames()).forEach(name -> dataTypesByName.put(name, dataType));
+		Arrays.stream(dataTypesReg).forEach(reg -> {
+			Arrays.stream(reg.names).forEach(name -> javaClassesByName.put(name, reg.javaClass));
+			dataTypesByClass.put(reg.javaClass, dataType);
+		});
 	}
 
 	@Override
@@ -485,9 +372,9 @@ class ExternalEngine implements IExternalEngineIntf
 			{
 				do
 				{
-					DataType dataType = getDataType(entryPoint, pos);
-					routine.inputParameters.add(new Parameter(dataType));
-					paramTypes.add(dataType.getJavaClass());
+					Parameter parameter = getDataType(entryPoint, pos);
+					routine.inputParameters.add(parameter);
+					paramTypes.add(parameter.javaClass);
 
 					skipBlanks(entryPoint, pos);
 
@@ -523,7 +410,7 @@ class ExternalEngine implements IExternalEngineIntf
 					routine.method.getReturnType().getName()));
 			}
 
-			routine.outputParameters.add(new Parameter(returnType));
+			routine.outputParameters.add(new Parameter(returnType, routine.method.getReturnType()));
 
 			IMessageMetadata inMetadata = metadata.getInputMetadata(status);
 			try
@@ -531,8 +418,8 @@ class ExternalEngine implements IExternalEngineIntf
 				IMessageMetadata outMetadata = metadata.getOutputMetadata(status);
 				try
 				{
-					routine.buildParameters(status, routine.inputParameters, inMetadata, inBuilder);
-					routine.buildParameters(status, routine.outputParameters, outMetadata, outBuilder);
+					routine.setupParameters(status, routine.inputParameters, inMetadata, inBuilder);
+					routine.setupParameters(status, routine.outputParameters, outMetadata, outBuilder);
 				}
 				finally
 				{
@@ -553,7 +440,7 @@ class ExternalEngine implements IExternalEngineIntf
 		}
 	}
 
-	private DataType getDataType(String s, int[] pos) throws FbException
+	private Parameter getDataType(String s, int[] pos) throws FbException
 	{
 		String name = getName(s, pos);
 
@@ -563,12 +450,12 @@ class ExternalEngine implements IExternalEngineIntf
 			name += "." + getName(s, pos);
 		}
 
-		DataType dataType = dataTypesByName.get(name);
+		Class<?> javaClass = javaClassesByName.get(name);
 
-		if (dataType == null)
+		if (javaClass == null)
 			throw new FbException(String.format("Unrecognized data type: '%s'",  name));
 
-		return dataType;
+		return new Parameter(dataTypesByClass.get(javaClass), javaClass);
 	}
 
 	private String getName(String s, int[] pos) throws FbException

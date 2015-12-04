@@ -18,8 +18,6 @@ abstract class DataType
 		abstract void putInMessage(Pointer message, int nullOffset, int offset, Object o);
 	}
 
-	abstract String[] getNames();
-	abstract Class<?> getJavaClass();
-	abstract Conversion buildMetadata(IStatus status, IMessageMetadata metadata, IMetadataBuilder builder, int index)
-		throws FbException;
+	abstract Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+		IMetadataBuilder builder, int index) throws FbException;
 }

@@ -17,11 +17,15 @@ class Routine
 	List<Parameter> inputParameters = new ArrayList<>();
 	List<Parameter> outputParameters = new ArrayList<>();
 
-	void buildParameters(IStatus status, List<Parameter> parameters, IMessageMetadata metadata,
+	void setupParameters(IStatus status, List<Parameter> parameters, IMessageMetadata metadata,
 		IMetadataBuilder builder) throws FbException
 	{
 		for (int i = 0; i < parameters.size(); ++i)
-			parameters.get(i).conversion = parameters.get(i).dataType.buildMetadata(status, metadata, builder, i);
+		{
+			Parameter parameter = parameters.get(i);
+			parameter.conversion = parameter.dataType.setupConversion(status,
+				parameter.javaClass, metadata, builder, i);
+		}
 
 		IMessageMetadata outMetadata = builder.getMetadata(status);
 		try
