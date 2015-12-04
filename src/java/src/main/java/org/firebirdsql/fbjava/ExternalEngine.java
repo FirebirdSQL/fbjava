@@ -341,6 +341,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 		defaultDataTypes.put(ISCConstants.SQL_SHORT, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_LONG, dataTypesByClass.get(BigDecimal.class));
+		defaultDataTypes.put(ISCConstants.SQL_INT64, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_DOUBLE, dataTypesByClass.get(Double.class));
 		defaultDataTypes.put(ISCConstants.SQL_BOOLEAN, dataTypesByClass.get(Boolean.class));
 	}
