@@ -65,6 +65,39 @@ class ExternalEngine implements IExternalEngineIntf
 		javaClassesByName = new HashMap<>();
 		defaultDataTypes = new HashMap<>();
 
+		// short, Short
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				builder.setType(status, index, ISCConstants.SQL_SHORT);
+				builder.setScale(status, index, 0);
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					{
+						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
+							(javaClass == short.class ? (Short)(short) 0 : null) :
+							(Short) message.getShort(offset);
+					}
+
+					@Override
+					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+							message.setShort(offset, (short) o);
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(short.class, "short"), new DataTypeReg(Short.class, "Short", "java.lang.Short"));
+
 		// int, Integer
 		addDataType(new DataType() {
 			@Override
@@ -130,6 +163,38 @@ class ExternalEngine implements IExternalEngineIntf
 				};
 			}
 		}, new DataTypeReg(long.class, "long"), new DataTypeReg(Long.class, "Long", "java.lang.Long"));
+
+		// float, Float
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				builder.setType(status, index, ISCConstants.SQL_FLOAT);
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					{
+						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
+							(javaClass == float.class ? (Float) 0.0f : null) :
+							(Float) message.getFloat(offset);
+					}
+
+					@Override
+					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+							message.setFloat(offset, (float) o);
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(float.class, "float"), new DataTypeReg(Float.class, "Float", "java.lang.Float"));
 
 		// double, Double
 		addDataType(new DataType() {
@@ -342,6 +407,8 @@ class ExternalEngine implements IExternalEngineIntf
 		defaultDataTypes.put(ISCConstants.SQL_SHORT, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_LONG, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_INT64, dataTypesByClass.get(BigDecimal.class));
+		defaultDataTypes.put(ISCConstants.SQL_FLOAT, dataTypesByClass.get(Float.class));
+		defaultDataTypes.put(ISCConstants.SQL_D_FLOAT, dataTypesByClass.get(Float.class));
 		defaultDataTypes.put(ISCConstants.SQL_DOUBLE, dataTypesByClass.get(Double.class));
 		defaultDataTypes.put(ISCConstants.SQL_BOOLEAN, dataTypesByClass.get(Boolean.class));
 	}
