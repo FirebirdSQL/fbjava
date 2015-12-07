@@ -2,8 +2,10 @@ package org.firebirdsql.fbjava;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,6 +18,8 @@ import org.firebirdsql.fbjava.FbClientLibrary.IMessageMetadata;
 import org.firebirdsql.fbjava.FbClientLibrary.IMetadataBuilder;
 import org.firebirdsql.fbjava.FbClientLibrary.IReferenceCounted;
 import org.firebirdsql.fbjava.FbClientLibrary.IRoutineMetadata;
+import org.firebirdsql.fbjava.FbClientLibrary.ISC_DATE;
+import org.firebirdsql.fbjava.FbClientLibrary.ISC_TIME;
 import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
 import org.firebirdsql.gds.ISCConstants;
 
@@ -349,6 +353,120 @@ class ExternalEngine implements IExternalEngineIntf
 			}
 		}, new DataTypeReg(BigDecimal.class, "java.math.BigDecimal"));
 
+		// java.util.Date, java.sql.Date
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				builder.setType(status, index, ISCConstants.SQL_TYPE_DATE);
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					{
+						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
+							return null;
+
+						long t = fbDateToJava(message.getInt(offset));
+
+						if (javaClass == java.util.Date.class)
+							return new java.util.Date(t);
+						else
+							return new java.sql.Date(t);
+					}
+
+					@Override
+					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+							message.setInt(offset, javaDateToFb(((java.util.Date) o).getTime()));
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(java.util.Date.class, "java.util.Date"), new DataTypeReg(java.sql.Date.class, "java.sql.Date"));
+
+		// java.sql.Time
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				builder.setType(status, index, ISCConstants.SQL_TYPE_TIME);
+				builder.setScale(status, index, 0);
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					{
+						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
+							return null;
+
+						long t = fbTimeToJava(message.getInt(offset));
+						return new java.sql.Time(t);
+					}
+
+					@Override
+					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+							message.setInt(offset, javaTimeToFb(((java.sql.Time) o).getTime()));
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(java.sql.Time.class, "java.sql.Time"));
+
+		// java.sql.Timestamp
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				builder.setType(status, index, ISCConstants.SQL_TIMESTAMP);
+				builder.setScale(status, index, 0);
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					{
+						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
+							return null;
+
+						long date = fbDateToJava(message.getInt(offset));
+						long time = fbTimeToJava(message.getInt(offset + 4));
+						java.sql.Time baseTime = new Time(0);
+
+						return new java.sql.Timestamp(date + time - baseTime.getTime());
+					}
+
+					@Override
+					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+
+							long t = ((java.sql.Timestamp) o).getTime();
+							message.setInt(offset, javaDateToFb(t));
+							message.setInt(offset + 4, javaTimeToFb(t));
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(java.sql.Timestamp.class, "java.sql.Timestamp"));
+
 		// boolean, Boolean
 		addDataType(new DataType() {
 			@Override
@@ -410,6 +528,9 @@ class ExternalEngine implements IExternalEngineIntf
 		defaultDataTypes.put(ISCConstants.SQL_FLOAT, dataTypesByClass.get(Float.class));
 		defaultDataTypes.put(ISCConstants.SQL_D_FLOAT, dataTypesByClass.get(Float.class));
 		defaultDataTypes.put(ISCConstants.SQL_DOUBLE, dataTypesByClass.get(Double.class));
+		defaultDataTypes.put(ISCConstants.SQL_TYPE_DATE, dataTypesByClass.get(java.sql.Date.class));
+		defaultDataTypes.put(ISCConstants.SQL_TYPE_TIME, dataTypesByClass.get(java.sql.Time.class));
+		defaultDataTypes.put(ISCConstants.SQL_TIMESTAMP, dataTypesByClass.get(java.sql.Timestamp.class));
 		defaultDataTypes.put(ISCConstants.SQL_BOOLEAN, dataTypesByClass.get(Boolean.class));
 	}
 
@@ -419,6 +540,71 @@ class ExternalEngine implements IExternalEngineIntf
 			Arrays.stream(reg.names).forEach(name -> javaClassesByName.put(name, reg.javaClass));
 			dataTypesByClass.put(reg.javaClass, dataType);
 		});
+	}
+
+	private static long fbDateToJava(int n)
+	{
+		ISC_DATE iscDate = new ISC_DATE();
+		iscDate.value = n;
+		int[] year = new int[1];
+		int[] month = new int[1];
+		int[] day = new int[1];
+		Main.util.decodeDate(iscDate, year, month, day);
+
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(0);
+		calendar.set(Calendar.YEAR, year[0]);
+		calendar.set(Calendar.MONTH, month[0] - 1);
+		calendar.set(Calendar.DAY_OF_MONTH, day[0]);
+
+		return calendar.getTimeInMillis();
+	}
+
+	private static int javaDateToFb(long n)
+	{
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(n);
+
+		ISC_DATE iscDate = Main.util.encodeDate(
+			calendar.get(Calendar.YEAR),
+			calendar.get(Calendar.MONTH) + 1,
+			calendar.get(Calendar.DAY_OF_MONTH));
+
+		return iscDate.value;
+	}
+
+	private static long fbTimeToJava(int n)
+	{
+		ISC_TIME iscTime = new ISC_TIME();
+		iscTime.value = n;
+		int[] hours = new int[1];
+		int[] minutes = new int[1];
+		int[] seconds = new int[1];
+		int[] fractions = new int[1];
+		Main.util.decodeTime(iscTime, hours, minutes, seconds, fractions);
+
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(0);
+		calendar.set(Calendar.HOUR_OF_DAY, hours[0]);
+		calendar.set(Calendar.MINUTE, minutes[0]);
+		calendar.set(Calendar.SECOND, seconds[0]);
+		calendar.set(Calendar.MILLISECOND, fractions[0] / 10);
+
+		return calendar.getTimeInMillis();
+	}
+
+	private static int javaTimeToFb(long n)
+	{
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(n);
+
+		ISC_TIME iscTime = Main.util.encodeTime(
+			calendar.get(Calendar.HOUR_OF_DAY),
+			calendar.get(Calendar.MINUTE),
+			calendar.get(Calendar.SECOND),
+			calendar.get(Calendar.MILLISECOND) * 10);
+
+		return iscTime.value;
 	}
 
 	@Override

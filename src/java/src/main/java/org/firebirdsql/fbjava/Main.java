@@ -3,6 +3,7 @@ package org.firebirdsql.fbjava;
 import org.firebirdsql.fbjava.FbClientLibrary.IMaster;
 import org.firebirdsql.fbjava.FbClientLibrary.IPluginFactory;
 import org.firebirdsql.fbjava.FbClientLibrary.IPluginManager;
+import org.firebirdsql.fbjava.FbClientLibrary.IUtil;
 
 import com.sun.jna.Native;
 
@@ -11,6 +12,7 @@ class Main
 {
 	public static FbClientLibrary library;
 	public static IMaster master;
+	public static IUtil util;
 
 	public static void initialize(String nativeLibrary)
 	{
@@ -19,6 +21,7 @@ class Main
 
 		//// FIXME: Receive the master interface from the plugin.
 		master = library.fb_get_master_interface();
+		util = master.getUtilInterface();
 
 		IPluginFactory pluginFactory = new IPluginFactory(new PluginFactory());
 		master.getPluginManager().registerPluginFactory(IPluginManager.TYPE_EXTERNAL_ENGINE, "JAVA", pluginFactory);

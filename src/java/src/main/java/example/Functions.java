@@ -69,4 +69,31 @@ public class Functions
 	{
 		return p;
 	}
+
+	public static java.util.Date f12a(java.util.Date p)
+	{
+		return p;
+	}
+
+	public static java.sql.Date f12b(java.sql.Date p)
+	{
+		return p;
+	}
+
+	/*** FIXME:
+	public static java.util.Date f13a(java.util.Date p)
+	{
+		return p;
+	}
+	***/
+
+	public static java.sql.Timestamp f13b(java.sql.Timestamp p)
+	{
+		return p;
+	}
+
+	public static java.sql.Time f14b(java.sql.Time p)
+	{
+		return p;
+	}
 }
