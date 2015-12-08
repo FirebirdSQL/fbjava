@@ -920,7 +920,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public com.sun.jna.Pointer cloopDummy;
 		public com.sun.jna.Pointer cloopVTable;
-		private volatile VTable vTable;
+		protected volatile VTable vTable;
 
 		@Override
 		protected java.util.List<String> getFieldOrder()
@@ -954,7 +954,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IVersioned(IVersionedIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -1028,7 +1028,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IReferenceCounted(IReferenceCountedIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -1104,7 +1104,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IDisposable(IDisposableIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -1284,7 +1284,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IStatus(IStatusIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -1574,7 +1574,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IMaster(IMasterIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -1746,7 +1746,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IPluginBase(IPluginBaseIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -1900,7 +1900,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IPluginSet(IPluginSetIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -2066,7 +2066,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IConfigEntry(IConfigEntryIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -2220,7 +2220,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IConfig(IConfigIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -2350,7 +2350,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IFirebirdConf(IFirebirdConfIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -2508,7 +2508,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IPluginConfig(IPluginConfigIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -2611,7 +2611,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IPluginFactory(IPluginFactoryIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -2681,7 +2681,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IPluginModule(IPluginModuleIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -2835,7 +2835,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IPluginManager(IPluginManagerIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -2998,7 +2998,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ICryptKey(ICryptKeyIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -3161,7 +3161,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IConfigManager(IConfigManagerIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -3270,7 +3270,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IEventCallback(IEventCallbackIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -3452,7 +3452,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IBlob(IBlobIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -3762,7 +3762,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITransaction(ITransactionIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -4222,7 +4222,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IMessageMetadata(IMessageMetadataIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -4616,7 +4616,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IMetadataBuilder(IMetadataBuilderIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -4985,7 +4985,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IResultSet(IResultSetIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -5368,7 +5368,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IStatement(IStatementIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -5658,7 +5658,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IRequest(IRequestIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -5782,7 +5782,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IEvents(IEventsIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -6225,7 +6225,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IAttachment(IAttachmentIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -6489,7 +6489,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IService(IServiceIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -6668,7 +6668,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IProvider(IProviderIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -6822,7 +6822,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IDtcStart(IDtcStartIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -6938,7 +6938,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IDtc(IDtcIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7002,7 +7002,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IAuth(IAuthIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7126,7 +7126,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IWriter(IWriterIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7275,7 +7275,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IServerBlock(IServerBlockIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7440,7 +7440,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IClientBlock(IClientBlockIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7550,7 +7550,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IServer(IServerIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7628,7 +7628,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IClient(IClientIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7733,7 +7733,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IUserField(IUserFieldIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7839,7 +7839,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ICharUserField(ICharUserFieldIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -7937,7 +7937,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IIntUserField(IIntUserFieldIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -8161,7 +8161,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IUser(IUserIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -8317,7 +8317,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IListUsers(IListUsersIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -8442,7 +8442,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ILogonInfo(ILogonInfoIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -8614,7 +8614,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IManagement(IManagementIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -8779,7 +8779,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IWireCryptPlugin(IWireCryptPluginIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -8873,7 +8873,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ICryptKeyCallback(ICryptKeyCallbackIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -8972,7 +8972,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IKeyHolderPlugin(IKeyHolderPluginIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -9100,7 +9100,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IDbCryptPlugin(IDbCryptPluginIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -9335,7 +9335,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IExternalContext(IExternalContextIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -9487,7 +9487,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IExternalResultSet(IExternalResultSetIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -9585,7 +9585,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IExternalFunction(IExternalFunctionIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -9691,7 +9691,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IExternalProcedure(IExternalProcedureIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -9797,7 +9797,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IExternalTrigger(IExternalTriggerIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -10058,7 +10058,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IRoutineMetadata(IRoutineMetadataIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -10315,7 +10315,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IExternalEngine(IExternalEngineIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -10427,7 +10427,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITimer(ITimerIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -10523,7 +10523,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITimerControl(ITimerControlIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -10607,7 +10607,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IVersionCallback(IVersionCallbackIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -10874,7 +10874,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IUtil(IUtilIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -11448,7 +11448,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IXpbBuilder(IXpbBuilderIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -11792,7 +11792,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceConnection(ITraceConnectionIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -11939,7 +11939,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceDatabaseConnection(ITraceDatabaseConnectionIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -12072,7 +12072,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceTransaction(ITraceTransactionIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -12187,7 +12187,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceParams(ITraceParamsIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -12278,7 +12278,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceStatement(ITraceStatementIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -12411,7 +12411,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceSQLStatement(ITraceSQLStatementIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -12540,7 +12540,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceBLRStatement(ITraceBLRStatementIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -12653,7 +12653,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceDYNRequest(ITraceDYNRequestIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -12766,7 +12766,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceContextVariable(ITraceContextVariableIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -12879,7 +12879,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceProcedure(ITraceProcedureIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -13006,7 +13006,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceFunction(ITraceFunctionIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -13155,7 +13155,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceTrigger(ITraceTriggerIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -13284,7 +13284,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceServiceConnection(ITraceServiceConnectionIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -13411,7 +13411,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceStatusVector(ITraceStatusVectorIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -13560,7 +13560,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceSweepInfo(ITraceSweepInfoIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -13661,7 +13661,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceLogWriter(ITraceLogWriterIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -13814,7 +13814,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceInitInfo(ITraceInitInfoIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -14211,7 +14211,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITracePlugin(ITracePluginIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -14462,7 +14462,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public ITraceFactory(ITraceFactoryIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -14569,7 +14569,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IUdrFunctionFactory(IUdrFunctionFactoryIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -14676,7 +14676,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IUdrProcedureFactory(IUdrProcedureFactoryIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -14783,7 +14783,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IUdrTriggerFactory(IUdrTriggerFactoryIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
@@ -14924,7 +14924,7 @@ interface FbClientLibrary extends com.sun.jna.Library
 
 		public IUdrPlugin(IUdrPluginIntf obj)
 		{
-			VTable vTable = new VTable(obj);
+			vTable = new VTable(obj);
 			vTable.write();
 			cloopVTable = vTable.getPointer();
 			write();
