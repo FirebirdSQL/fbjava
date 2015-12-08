@@ -1,7 +1,6 @@
 package org.firebirdsql.fbjava;
 
 import org.firebirdsql.fbjava.FbClientLibrary.IMaster;
-import org.firebirdsql.fbjava.FbClientLibrary.IPluginFactory;
 import org.firebirdsql.fbjava.FbClientLibrary.IPluginManager;
 import org.firebirdsql.fbjava.FbClientLibrary.IUtil;
 
@@ -23,7 +22,7 @@ class Main
 		master = library.fb_get_master_interface();
 		util = master.getUtilInterface();
 
-		IPluginFactory pluginFactory = new IPluginFactory(new PluginFactory());
-		master.getPluginManager().registerPluginFactory(IPluginManager.TYPE_EXTERNAL_ENGINE, "JAVA", pluginFactory);
+		master.getPluginManager().registerPluginFactory(IPluginManager.TYPE_EXTERNAL_ENGINE, "JAVA",
+			PluginFactory.create());
 	}
 }

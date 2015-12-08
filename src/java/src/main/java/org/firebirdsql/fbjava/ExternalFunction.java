@@ -3,6 +3,7 @@ package org.firebirdsql.fbjava;
 import java.lang.reflect.InvocationTargetException;
 
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
+import org.firebirdsql.fbjava.FbClientLibrary.IExternalFunction;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalFunctionIntf;
 import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
 
@@ -11,17 +12,25 @@ import com.sun.jna.Pointer;
 
 class ExternalFunction implements IExternalFunctionIntf
 {
+	private IExternalFunction wrapper;
 	private Routine routine;
 
-	public ExternalFunction(Routine routine)
+	private ExternalFunction(Routine routine)
 	{
 		this.routine = routine;
+	}
+
+	public static IExternalFunction create(Routine routine)
+	{
+		ExternalFunction wrapped = new ExternalFunction(routine);
+		wrapped.wrapper = JnaUtil.pin(new IExternalFunction(wrapped));
+		return wrapped.wrapper;
 	}
 
 	@Override
 	public void dispose()
 	{
-		//// TODO:
+		JnaUtil.unpin(wrapper);
 	}
 
 	@Override

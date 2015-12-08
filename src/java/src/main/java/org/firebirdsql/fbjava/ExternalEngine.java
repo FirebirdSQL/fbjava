@@ -8,8 +8,10 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
+import org.firebirdsql.fbjava.FbClientLibrary.IExternalEngine;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalEngineIntf;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalFunction;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalProcedure;
@@ -32,6 +34,8 @@ class ExternalEngine implements IExternalEngineIntf
 	private static Map<Class<?>, DataType> dataTypesByClass;
 	private static Map<String, Class<?>> javaClassesByName;
 	private static Map<Integer, DataType> defaultDataTypes;
+	private IExternalEngine wrapper;
+	private AtomicInteger refCounter = new AtomicInteger(1);
 
 	private static class DataTypeReg
 	{
@@ -43,6 +47,10 @@ class ExternalEngine implements IExternalEngineIntf
 
 		Class<?> javaClass;
 		String[] names;
+	}
+
+	private ExternalEngine()
+	{
 	}
 
 	static
@@ -607,6 +615,31 @@ class ExternalEngine implements IExternalEngineIntf
 		return iscTime.value;
 	}
 
+	public static IExternalEngine create()
+	{
+		ExternalEngine wrapped = new ExternalEngine();
+		wrapped.wrapper = JnaUtil.pin(new IExternalEngine(wrapped));
+		return wrapped.wrapper;
+	}
+
+	@Override
+	public void addRef()
+	{
+		refCounter.incrementAndGet();
+	}
+
+	@Override
+	public int release()
+	{
+		if (refCounter.decrementAndGet() == 0)
+		{
+			JnaUtil.unpin(wrapper);
+			return 0;
+		}
+		else
+			return 1;
+	}
+
 	@Override
 	public void setOwner(IReferenceCounted r)
 	{
@@ -616,19 +649,6 @@ class ExternalEngine implements IExternalEngineIntf
 	public IReferenceCounted getOwner()
 	{
 		return null;
-	}
-
-	@Override
-	public void addRef()
-	{
-		//// TODO:
-	}
-
-	@Override
-	public int release()
-	{
-		//// TODO:
-		return 0;
 	}
 
 	@Override
@@ -651,7 +671,7 @@ class ExternalEngine implements IExternalEngineIntf
 		IRoutineMetadata metadata, IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
 	{
 		Routine routine = getRoutine(status, metadata, inBuilder, outBuilder);
-		return new IExternalFunction(new ExternalFunction(routine));
+		return ExternalFunction.create(routine);
 	}
 
 	@Override
