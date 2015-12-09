@@ -96,4 +96,14 @@ public class Functions
 	{
 		return p;
 	}
+
+	public static Integer f15a(byte[] p)
+	{
+		return p != null ? p.length : null;
+	}
+
+	public static byte[] f16a(byte[] p)
+	{
+		return p;
+	}
 }

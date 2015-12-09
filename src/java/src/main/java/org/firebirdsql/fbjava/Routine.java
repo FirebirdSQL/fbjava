@@ -44,7 +44,7 @@ class Routine
 		}
 	}
 
-	Object[] getFromMessage(IStatus status, List<Parameter> parameters, Pointer message)
+	Object[] getFromMessage(IStatus status, List<Parameter> parameters, Pointer message) throws FbException
 	{
 		Object[] values = new Object[parameters.size()];
 		int i = 0;
@@ -58,7 +58,7 @@ class Routine
 		return values;
 	}
 
-	void putInMessage(IStatus status, List<Parameter> parameters, Object[] values, Pointer message)
+	void putInMessage(IStatus status, List<Parameter> parameters, Object[] values, Pointer message) throws FbException
 	{
 		assert parameters.size() == values.length;
 

@@ -77,6 +77,80 @@ class ExternalEngine implements IExternalEngineIntf
 		javaClassesByName = new HashMap<>();
 		defaultDataTypes = new HashMap<>();
 
+		// byte[]
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				int type = metadata.getType(status, index);
+				int length = metadata.getLength(status, index);
+
+				switch (type)
+				{
+					case ISCConstants.SQL_TEXT:
+						builder.setType(status, index, ISCConstants.SQL_VARYING);
+						break;
+
+					case ISCConstants.SQL_VARYING:
+					//// FIXME: case ISCConstants.SQL_BLOB:
+						break;
+
+					default:
+					{
+						String typeName = fbTypeNames.get(type);
+						if (typeName == null)
+							typeName = String.valueOf(type);
+
+						throw new FbException(
+							String.format("Cannot use Java byte[] type for the Firebird type '%s'.", typeName));
+					}
+				}
+
+				if (type == ISCConstants.SQL_BLOB)
+				{
+					//// FIXME:
+					return null;
+				}
+				else
+				{
+					return new Conversion() {
+						@Override
+						Object getFromMessage(Pointer message, int nullOffset, int offset)
+						{
+							if (message.getShort(nullOffset) != NOT_NULL_FLAG)
+								return null;
+
+							int length = Short.toUnsignedInt(message.getShort(offset));
+							return message.getByteArray(offset + 2, length);
+						}
+
+						@Override
+						void putInMessage(Pointer message, int nullOffset, int offset, Object o) throws FbException
+						{
+							if (o == null)
+								message.setShort(nullOffset, NULL_FLAG);
+							else
+							{
+								byte[] bytes = (byte[]) o;
+
+								if (bytes.length > length)
+								{
+									throw new FbException(String.format(
+										"Byte array with length (%d) greater than max expected length (%d).",
+										bytes.length, length));
+								}
+
+								message.setShort(nullOffset, NOT_NULL_FLAG);
+								message.setShort(offset, (short) bytes.length);
+								message.write(offset + 2, bytes, 0, bytes.length);
+							}
+						}
+					};
+				}
+			}
+		}, new DataTypeReg(byte[].class, "byte[]"));
+
 		// short, Short
 		addDataType(new DataType() {
 			@Override
@@ -792,6 +866,22 @@ class ExternalEngine implements IExternalEngineIntf
 		{
 			++pos[0];
 			name += "." + getName(s, pos);
+		}
+
+		skipBlanks(s, pos);
+
+		while (peekChar(s, pos) == '[')
+		{
+			++pos[0];
+			skipBlanks(s, pos);
+
+			if (getChar(s, pos) == ']')
+			{
+				skipBlanks(s, pos);
+				name += "[]";
+			}
+			else
+				throw new FbException("Expected ']'.");
 		}
 
 		Class<?> javaClass = javaClassesByName.get(name);

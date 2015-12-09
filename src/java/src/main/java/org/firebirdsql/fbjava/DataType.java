@@ -14,8 +14,8 @@ abstract class DataType
 
 	abstract class Conversion
 	{
-		abstract Object getFromMessage(Pointer message, int nullOffset, int offset);
-		abstract void putInMessage(Pointer message, int nullOffset, int offset, Object o);
+		abstract Object getFromMessage(Pointer message, int nullOffset, int offset) throws FbException;
+		abstract void putInMessage(Pointer message, int nullOffset, int offset, Object o) throws FbException;
 	}
 
 	abstract Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
