@@ -1,5 +1,6 @@
 package org.firebirdsql.fbjava;
 
+import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
 import org.firebirdsql.fbjava.FbClientLibrary.IMessageMetadata;
 import org.firebirdsql.fbjava.FbClientLibrary.IMetadataBuilder;
 import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
@@ -14,8 +15,10 @@ abstract class DataType
 
 	abstract class Conversion
 	{
-		abstract Object getFromMessage(Pointer message, int nullOffset, int offset) throws FbException;
-		abstract void putInMessage(Pointer message, int nullOffset, int offset, Object o) throws FbException;
+		abstract Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+			throws FbException;
+		abstract void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+			throws FbException;
 	}
 
 	abstract Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,

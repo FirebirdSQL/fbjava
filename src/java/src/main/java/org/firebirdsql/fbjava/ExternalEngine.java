@@ -1,5 +1,7 @@
 package org.firebirdsql.fbjava;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Time;
@@ -24,6 +26,9 @@ import org.firebirdsql.fbjava.FbClientLibrary.ISC_DATE;
 import org.firebirdsql.fbjava.FbClientLibrary.ISC_TIME;
 import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
 import org.firebirdsql.gds.ISCConstants;
+import org.firebirdsql.gds.impl.GDSHelper;
+import org.firebirdsql.jdbc.FBBlob;
+import org.firebirdsql.jdbc.FBConnection;
 
 import com.sun.jna.Pointer;
 
@@ -93,7 +98,7 @@ class ExternalEngine implements IExternalEngineIntf
 						break;
 
 					case ISCConstants.SQL_VARYING:
-					//// FIXME: case ISCConstants.SQL_BLOB:
+					case ISCConstants.SQL_BLOB:
 						break;
 
 					default:
@@ -109,14 +114,72 @@ class ExternalEngine implements IExternalEngineIntf
 
 				if (type == ISCConstants.SQL_BLOB)
 				{
-					//// FIXME:
-					return null;
+					return new Conversion() {
+						@Override
+						Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+							throws FbException
+						{
+							if (message.getShort(nullOffset) != NOT_NULL_FLAG)
+								return null;
+
+							long blobId = message.getLong(offset);
+
+							try
+							{
+								FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+								GDSHelper gdsHelper = connection.getGDSHelper();
+								FBBlob blob = new FBBlob(gdsHelper, blobId);
+
+								try (InputStream in = blob.getBinaryStream())
+								{
+									byte[] bytes = new byte[(int) blob.length()];
+									in.read(bytes);
+									return bytes;
+								}
+							}
+							catch (Exception e)
+							{
+								FbException.rethrow(e);
+								return null;
+							}
+						}
+
+						@Override
+						void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
+							Object o) throws FbException
+						{
+							if (o == null)
+								message.setShort(nullOffset, NULL_FLAG);
+							else
+							{
+								byte[] bytes = (byte[]) o;
+
+								try
+								{
+									FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+									FBBlob blob = (FBBlob) connection.createBlob();
+
+									try (OutputStream out = blob.setBinaryStream(1))
+									{
+										out.write(bytes);
+									}
+
+									message.setShort(nullOffset, NOT_NULL_FLAG);
+									message.setLong(offset, blob.getBlobId());
+								}
+								catch (Exception e)
+								{
+									FbException.rethrow(e);
+								}
+							}
+						}
+					};
 				}
 				else
 				{
 					return new Conversion() {
 						@Override
-						Object getFromMessage(Pointer message, int nullOffset, int offset)
+						Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 						{
 							if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 								return null;
@@ -126,7 +189,8 @@ class ExternalEngine implements IExternalEngineIntf
 						}
 
 						@Override
-						void putInMessage(Pointer message, int nullOffset, int offset, Object o) throws FbException
+						void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
+							Object o) throws FbException
 						{
 							if (o == null)
 								message.setShort(nullOffset, NULL_FLAG);
@@ -162,7 +226,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == short.class ? (Short)(short) 0 : null) :
@@ -170,7 +234,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -195,7 +259,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == int.class ? (Integer) 0 : null) :
@@ -203,7 +267,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -228,7 +292,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == long.class ? (Long) 0L : null) :
@@ -236,7 +300,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -260,7 +324,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == float.class ? (Float) 0.0f : null) :
@@ -268,7 +332,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -292,7 +356,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == double.class ? (Double) 0.0 : null) :
@@ -300,7 +364,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -346,7 +410,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -386,7 +450,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 						{
@@ -445,7 +509,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -459,7 +523,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -484,7 +548,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -494,7 +558,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -519,7 +583,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -532,7 +596,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -559,7 +623,7 @@ class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(Pointer message, int nullOffset, int offset)
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == boolean.class ? (Boolean) false : null) :
@@ -567,7 +631,7 @@ class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(Pointer message, int nullOffset, int offset, Object o)
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
 					{
 						if (o == null)
 							message.setShort(nullOffset, NULL_FLAG);

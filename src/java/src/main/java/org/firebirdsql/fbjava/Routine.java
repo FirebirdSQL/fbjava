@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
 import org.firebirdsql.fbjava.FbClientLibrary.IMessageMetadata;
 import org.firebirdsql.fbjava.FbClientLibrary.IMetadataBuilder;
 import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
@@ -44,21 +45,23 @@ class Routine
 		}
 	}
 
-	Object[] getFromMessage(IStatus status, List<Parameter> parameters, Pointer message) throws FbException
+	Object[] getFromMessage(IStatus status, IExternalContext context, List<Parameter> parameters, Pointer message)
+		throws FbException
 	{
 		Object[] values = new Object[parameters.size()];
 		int i = 0;
 
 		for (Parameter parameter : parameters)
 		{
-			values[i] = parameter.conversion.getFromMessage(message, parameter.nullOffset, parameter.offset);
+			values[i] = parameter.conversion.getFromMessage(context, message, parameter.nullOffset, parameter.offset);
 			++i;
 		}
 
 		return values;
 	}
 
-	void putInMessage(IStatus status, List<Parameter> parameters, Object[] values, Pointer message) throws FbException
+	void putInMessage(IStatus status, IExternalContext context, List<Parameter> parameters, Object[] values,
+		Pointer message) throws FbException
 	{
 		assert parameters.size() == values.length;
 
@@ -67,7 +70,7 @@ class Routine
 		for (Parameter parameter : parameters)
 		{
 			Object value = values[i];
-			parameter.conversion.putInMessage(message, parameter.nullOffset, parameter.offset, value);
+			parameter.conversion.putInMessage(context, message, parameter.nullOffset, parameter.offset, value);
 			++i;
 		}
 	}
