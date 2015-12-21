@@ -3,12 +3,18 @@ package org.firebirdsql.fbjava;
 import java.util.Arrays;
 import java.util.List;
 
+import org.firebirdsql.jna.fbclient.ISC_STATUS;
+
 import com.sun.jna.Structure;
+import com.sun.jna.ptr.IntByReference;
 
 
 interface FbClientLibrary extends com.sun.jna.Library
 {
 	IMaster fb_get_master_interface();
+
+	ISC_STATUS fb_get_database_handle(ISC_STATUS[] statusVector, IntByReference dbHandle, IAttachment attachment);
+	ISC_STATUS fb_get_transaction_handle(ISC_STATUS[] statusVector, IntByReference trHandle, ITransaction transaction);
 
 	public static class ISC_QUAD extends Structure implements Structure.ByValue
 	{
