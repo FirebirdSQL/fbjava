@@ -14,8 +14,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
 
-		<!--<jaybird.version>3.0.0-SNAPSHOT</jaybird.version>-->
-		<jaybird.version>2.2.9</jaybird.version>
+		<jaybird.version>3.0.0-SNAPSHOT</jaybird.version>
 		<jna.version>4.2.1</jna.version>
 	</properties>
 
@@ -44,6 +43,9 @@
 			<groupId>org.firebirdsql.jdbc</groupId>
 			<artifactId>jaybird-jdk18</artifactId>
 			<version>${jaybird.version}</version>
+			<!-- FIXME: Use a Jaybird public release. -->
+			<scope>system</scope>
+			<systemPath>${project.basedir}/../../../jaybird.git/output/lib/jaybird-full-3.0.0-SNAPSHOT.jar</systemPath>
 		</dependency>
 	</dependencies>
 
