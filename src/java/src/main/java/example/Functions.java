@@ -19,6 +19,7 @@
 package example;
 
 import java.math.BigDecimal;
+import java.sql.Blob;
 
 
 public class Functions
@@ -121,6 +122,11 @@ public class Functions
 	}
 
 	public static byte[] f16a(byte[] p)
+	{
+		return p;
+	}
+
+	public static Blob f17a(Blob p)
 	{
 		return p;
 	}

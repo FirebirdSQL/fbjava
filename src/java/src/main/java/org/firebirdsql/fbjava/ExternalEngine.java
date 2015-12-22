@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Blob;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -232,6 +233,94 @@ class ExternalEngine implements IExternalEngineIntf
 				}
 			}
 		}, new DataTypeReg(byte[].class, "byte[]"));
+
+		// java.sql.Blob
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				int type = metadata.getType(status, index);
+
+				if (type != ISCConstants.SQL_BLOB)
+				{
+					String typeName = fbTypeNames.get(type);
+					if (typeName == null)
+						typeName = String.valueOf(type);
+
+					throw new FbException(
+						String.format("Cannot use Java java.sql.Blob type for the Firebird type '%s'.", typeName));
+				}
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+						throws FbException
+					{
+						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
+							return null;
+
+						long blobId = message.getLong(offset);
+
+						try
+						{
+							FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+							GDSHelper gdsHelper = connection.getGDSHelper();
+
+							return new FBBlob(gdsHelper, blobId);
+						}
+						catch (Exception e)
+						{
+							FbException.rethrow(e);
+							return null;
+						}
+					}
+
+					@Override
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
+						Object o) throws FbException
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							Blob blob = (Blob) o;
+
+							try
+							{
+								FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+								long blobId;
+								FBBlob fbBlob;
+
+								if (blob instanceof FBBlob &&
+									(fbBlob = (FBBlob) blob).getGdsHelper() == connection.getGDSHelper())
+								{
+									blobId = fbBlob.getBlobId();
+								}
+								else
+								{
+									FBBlob outBlob = (FBBlob) connection.createBlob();
+
+									try (InputStream in = blob.getBinaryStream())
+									{
+										outBlob.copyStream(in);
+									}
+
+									blobId = outBlob.getBlobId();
+								}
+
+								message.setShort(nullOffset, NOT_NULL_FLAG);
+								message.setLong(offset, blobId);
+							}
+							catch (Exception e)
+							{
+								FbException.rethrow(e);
+							}
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(Blob.class, "java.sql.Blob"));
 
 		// short, Short
 		addDataType(new DataType() {
@@ -686,6 +775,7 @@ class ExternalEngine implements IExternalEngineIntf
 			}
 		}, new DataTypeReg(Object.class, "Object", "java.lang.Object"));
 
+		defaultDataTypes.put(ISCConstants.SQL_BLOB, dataTypesByClass.get(Blob.class));
 		defaultDataTypes.put(ISCConstants.SQL_SHORT, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_LONG, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_INT64, dataTypesByClass.get(BigDecimal.class));
