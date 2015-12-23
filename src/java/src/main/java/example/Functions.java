@@ -130,4 +130,9 @@ public class Functions
 	{
 		return p;
 	}
+
+	public static String f18a(String p)
+	{
+		return p;
+	}
 }

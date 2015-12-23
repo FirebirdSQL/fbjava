@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.firebirdsql.encodings.Encoding;
+import org.firebirdsql.encodings.EncodingFactory;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalEngine;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalEngineIntf;
@@ -54,6 +56,7 @@ import com.sun.jna.Pointer;
 
 class ExternalEngine implements IExternalEngineIntf
 {
+	private static final EncodingFactory encodingFactory = EncodingFactory.getDefaultInstance();
 	private static Map<Integer, String> fbTypeNames;
 	private static Map<Class<?>, DataType> dataTypesByClass;
 	private static Map<String, Class<?>> javaClassesByName;
@@ -100,6 +103,76 @@ class ExternalEngine implements IExternalEngineIntf
 		dataTypesByClass = new HashMap<>();
 		javaClassesByName = new HashMap<>();
 		defaultDataTypes = new HashMap<>();
+
+		// String
+		addDataType(new DataType() {
+			@Override
+			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
+				IMetadataBuilder builder, int index) throws FbException
+			{
+				int type = metadata.getType(status, index);
+				int length = metadata.getLength(status, index);
+				Encoding encoding = encodingFactory.getEncodingForCharacterSetId(metadata.getCharSet(status, index));
+
+				switch (type)
+				{
+					case ISCConstants.SQL_TEXT:
+						builder.setType(status, index, ISCConstants.SQL_VARYING);
+						break;
+
+					case ISCConstants.SQL_VARYING:
+					//// FIXME: case ISCConstants.SQL_BLOB:
+						break;
+
+					//// FIXME: Others types.
+
+					default:
+					{
+						String typeName = fbTypeNames.get(type);
+						if (typeName == null)
+							typeName = String.valueOf(type);
+
+						throw new FbException(
+							String.format("Cannot use Java String type for the Firebird type '%s'.", typeName));
+					}
+				}
+
+				return new Conversion() {
+					@Override
+					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					{
+						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
+							return null;
+
+						int length = Short.toUnsignedInt(message.getShort(offset));
+						return encoding.decodeFromCharset(message.getByteArray(offset + 2, length));
+					}
+
+					@Override
+					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
+						Object o) throws FbException
+					{
+						if (o == null)
+							message.setShort(nullOffset, NULL_FLAG);
+						else
+						{
+							byte[] bytes = encoding.encodeToCharset((String) o);
+
+							if (bytes.length > length)
+							{
+								throw new FbException(String.format(
+									"String with length (%d) bytes greater than max expected length (%d).",
+									bytes.length, length));
+							}
+
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+							message.setShort(offset, (short) bytes.length);
+							message.write(offset + 2, bytes, 0, bytes.length);
+						}
+					}
+				};
+			}
+		}, new DataTypeReg(String.class, "String"), new DataTypeReg(String.class, "java.lang.String"));
 
 		// byte[]
 		addDataType(new DataType() {
@@ -775,6 +848,8 @@ class ExternalEngine implements IExternalEngineIntf
 			}
 		}, new DataTypeReg(Object.class, "Object", "java.lang.Object"));
 
+		defaultDataTypes.put(ISCConstants.SQL_TEXT, dataTypesByClass.get(String.class));
+		defaultDataTypes.put(ISCConstants.SQL_VARYING, dataTypesByClass.get(String.class));
 		defaultDataTypes.put(ISCConstants.SQL_BLOB, dataTypesByClass.get(Blob.class));
 		defaultDataTypes.put(ISCConstants.SQL_SHORT, dataTypesByClass.get(BigDecimal.class));
 		defaultDataTypes.put(ISCConstants.SQL_LONG, dataTypesByClass.get(BigDecimal.class));
