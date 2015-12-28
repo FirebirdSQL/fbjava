@@ -124,7 +124,20 @@ class ExternalEngine implements IExternalEngineIntf
 					//// FIXME: case ISCConstants.SQL_BLOB:
 						break;
 
-					//// FIXME: Others types.
+					case ISCConstants.SQL_SHORT:
+					case ISCConstants.SQL_LONG:
+					case ISCConstants.SQL_FLOAT:
+					case ISCConstants.SQL_DOUBLE:
+					case ISCConstants.SQL_D_FLOAT:
+					case ISCConstants.SQL_TIMESTAMP:
+					case ISCConstants.SQL_TYPE_TIME:
+					case ISCConstants.SQL_TYPE_DATE:
+					case ISCConstants.SQL_INT64:
+					case ISCConstants.SQL_BOOLEAN:
+						builder.setType(status, index, ISCConstants.SQL_VARYING);
+						length = 25;	// max length (of timestamp)
+						builder.setLength(status, index, length);
+						break;
 
 					default:
 					{
@@ -136,6 +149,8 @@ class ExternalEngine implements IExternalEngineIntf
 							String.format("Cannot use Java String type for the Firebird type '%s'.", typeName));
 					}
 				}
+
+				final int finalLength = length;
 
 				return new Conversion() {
 					@Override
@@ -158,11 +173,11 @@ class ExternalEngine implements IExternalEngineIntf
 						{
 							byte[] bytes = encoding.encodeToCharset((String) o);
 
-							if (bytes.length > length)
+							if (bytes.length > finalLength)
 							{
 								throw new FbException(String.format(
 									"String with length (%d) bytes greater than max expected length (%d).",
-									bytes.length, length));
+									bytes.length, finalLength));
 							}
 
 							message.setShort(nullOffset, NOT_NULL_FLAG);
