@@ -121,8 +121,41 @@ class ExternalEngine implements IExternalEngineIntf
 						break;
 
 					case ISCConstants.SQL_VARYING:
-					//// FIXME: case ISCConstants.SQL_BLOB:
 						break;
+
+					case ISCConstants.SQL_BLOB:
+					{
+						Conversion byteConversion = dataTypesByClass.get(byte[].class).setupConversion(status,
+							byte[].class, metadata, builder, index);
+
+						return new Conversion() {
+							@Override
+							Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+								throws FbException
+							{
+								if (message.getShort(nullOffset) != NOT_NULL_FLAG)
+									return null;
+
+								byte[] bytes = (byte[]) byteConversion.getFromMessage(context, message,
+									nullOffset, offset);
+
+								return encoding.decodeFromCharset(bytes);
+							}
+
+							@Override
+							void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
+								Object o) throws FbException
+							{
+								if (o == null)
+									message.setShort(nullOffset, NULL_FLAG);
+								else
+								{
+									byte[] bytes = encoding.encodeToCharset((String) o);
+									byteConversion.putInMessage(context, message, nullOffset, offset, bytes);
+								}
+							}
+						};
+					}
 
 					case ISCConstants.SQL_SHORT:
 					case ISCConstants.SQL_LONG:
