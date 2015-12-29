@@ -20,6 +20,11 @@ package example;
 
 import java.math.BigDecimal;
 import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 
 public class Functions
@@ -134,5 +139,27 @@ public class Functions
 	public static String f18a(String p)
 	{
 		return p;
+	}
+
+	public static int f19() throws SQLException
+	{
+		int n = 0;
+
+		for (int i = 0; i < 2; ++i)
+		{
+			try (Connection connection = DriverManager.getConnection("jdbc:default:connection"))
+			{
+				try (Statement statement = connection.createStatement())
+				{
+					try (ResultSet rs = statement.executeQuery("select 11 from rdb$database"))
+					{
+						rs.next();
+						n += rs.getInt(1);
+					}
+				}
+			}
+		}
+
+		return n;
 	}
 }
