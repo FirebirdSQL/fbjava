@@ -18,30 +18,32 @@
  */
 package org.firebirdsql.fbjava;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalFunction;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalFunctionIntf;
+import org.firebirdsql.fbjava.FbClientLibrary.IExternalProcedure;
+import org.firebirdsql.fbjava.FbClientLibrary.IExternalProcedureIntf;
+import org.firebirdsql.fbjava.FbClientLibrary.IExternalResultSet;
 import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
 
 import com.sun.jna.Pointer;
 
 
-class ExternalFunction implements IExternalFunctionIntf
+class ExternalProcedure implements IExternalProcedureIntf
 {
-	private IExternalFunction wrapper;
+	private IExternalProcedure wrapper;
 	private Routine routine;
 
-	private ExternalFunction(Routine routine)
+	private ExternalProcedure(Routine routine)
 	{
 		this.routine = routine;
 	}
 
-	public static IExternalFunction create(Routine routine)
+	public static IExternalProcedure create(Routine routine)
 	{
-		ExternalFunction wrapped = new ExternalFunction(routine);
-		wrapped.wrapper = JnaUtil.pin(new IExternalFunction(wrapped));
+		ExternalProcedure wrapped = new ExternalProcedure(routine);
+		wrapped.wrapper = JnaUtil.pin(new IExternalProcedure(wrapped));
 		return wrapped.wrapper;
 	}
 
@@ -58,16 +60,29 @@ class ExternalFunction implements IExternalFunctionIntf
 	}
 
 	@Override
-	public void execute(IStatus status, IExternalContext context, Pointer inMsg, Pointer outMsg) throws FbException
+	public IExternalResultSet open(IStatus status, IExternalContext context, Pointer inMsg, Pointer outMsg)
+		throws FbException
 	{
 		try
 		{
 			try (InternalContext internalContext = InternalContext.get(status, context))
 			{
-				Object[] in = routine.getFromMessage(status, context, routine.inputParameters, inMsg);
-				Object[] out = {routine.method.invoke(null, in)};
+				int inCount = routine.inputParameters.size();
+				int outCount = routine.outputParameters.size();
+				Object[] inOut = new Object[inCount + outCount];
 
-				routine.putInMessage(status, context, routine.outputParameters, out, 0, outMsg);
+				routine.getFromMessage(status, context, routine.inputParameters, inMsg, inOut);
+
+				for (int i = inCount; i < inOut.length; ++i)
+					inOut[i] = Array.newInstance(routine.outputParameters.get(i - inCount).javaClass, 1);
+
+				//// TODO: selectable procedure
+				routine.method.invoke(null, inOut);
+
+				for (int i = inCount; i < inOut.length; ++i)
+					inOut[i] = Array.get(inOut[i], 0);
+
+				routine.putInMessage(status, context, routine.outputParameters, inOut, inCount, outMsg);
 			}
 		}
 		catch (InvocationTargetException e)
@@ -78,5 +93,7 @@ class ExternalFunction implements IExternalFunctionIntf
 		{
 			FbException.rethrow(t);
 		}
+
+		return null;
 	}
 }

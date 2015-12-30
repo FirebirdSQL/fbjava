@@ -20,6 +20,7 @@ package org.firebirdsql.fbjava;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Blob;
@@ -1039,7 +1040,7 @@ class ExternalEngine implements IExternalEngineIntf
 	public IExternalFunction makeFunction(IStatus status, IExternalContext context,
 		IRoutineMetadata metadata, IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
 	{
-		Routine routine = getRoutine(status, metadata, inBuilder, outBuilder);
+		Routine routine = getRoutine(status, metadata, inBuilder, outBuilder, Routine.Type.FUNCTION);
 		return ExternalFunction.create(routine);
 	}
 
@@ -1047,8 +1048,8 @@ class ExternalEngine implements IExternalEngineIntf
 	public IExternalProcedure makeProcedure(IStatus status, IExternalContext context,
 		IRoutineMetadata metadata, IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
 	{
-		System.out.println("makeProcedure");
-		return null;
+		Routine routine = getRoutine(status, metadata, inBuilder, outBuilder, Routine.Type.PROCEDURE);
+		return ExternalProcedure.create(routine);
 	}
 
 	@Override
@@ -1060,7 +1061,7 @@ class ExternalEngine implements IExternalEngineIntf
 	}
 
 	private Routine getRoutine(IStatus status, IRoutineMetadata metadata,
-		IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
+		IMetadataBuilder inBuilder, IMetadataBuilder outBuilder, Routine.Type type) throws FbException
 	{
 		try
 		{
@@ -1079,58 +1080,113 @@ class ExternalEngine implements IExternalEngineIntf
 
 			skipBlanks(entryPoint, pos);
 
-			if (peekChar(entryPoint, pos) == ')')
-				++pos[0];
-			else
-			{
-				do
-				{
-					Parameter parameter = getDataType(entryPoint, pos);
-					routine.inputParameters.add(parameter);
-					paramTypes.add(parameter.javaClass);
-
-					skipBlanks(entryPoint, pos);
-
-					char c = getChar(entryPoint, pos);
-
-					if (c == ')')
-					{
-						//// TODO: return[s] <type> ?
-						break;
-					}
-					else if (c == ',')
-						skipBlanks(entryPoint, pos);
-					else
-					{
-						--pos[0];
-						throw new FbException(invalidMethodSignatureMsg);
-					}
-				} while (true);
-			}
-
-			skipBlanks(entryPoint, pos);
-
-			if (pos[0] != entryPoint.length())
-				throw new FbException(invalidMethodSignatureMsg);
-
-			routine.method = clazz.getMethod(methodName, paramTypes.toArray(new Class<?> [0]));
-
-			DataType returnType = dataTypesByClass.get(routine.method.getReturnType());
-
-			if (returnType == null)
-			{
-				throw new FbException(String.format("Unrecognized data type: '%s'",
-					routine.method.getReturnType().getName()));
-			}
-
-			routine.outputParameters.add(new Parameter(returnType, routine.method.getReturnType()));
-
 			IMessageMetadata inMetadata = metadata.getInputMetadata(status);
 			try
 			{
+				int inCount = inMetadata.getCount(status);
+
 				IMessageMetadata outMetadata = metadata.getOutputMetadata(status);
 				try
 				{
+					int outCount = outMetadata.getCount(status);
+
+					if (peekChar(entryPoint, pos) == ')')
+						++pos[0];
+					else
+					{
+						int n = 0;
+
+						do
+						{
+							++n;
+
+							boolean isOutput = n > inCount && n <= inCount + outCount;
+							Parameter parameter = getDataType(entryPoint, pos, isOutput);
+
+							if (isOutput)
+								routine.outputParameters.add(parameter);
+							else
+								routine.inputParameters.add(parameter);
+
+							paramTypes.add(parameter.javaClass);
+
+							skipBlanks(entryPoint, pos);
+
+							char c = getChar(entryPoint, pos);
+
+							if (c == ')')
+							{
+								//// TODO: return[s] <type> ?
+								break;
+							}
+							else if (c == ',')
+								skipBlanks(entryPoint, pos);
+							else
+							{
+								--pos[0];
+								throw new FbException(invalidMethodSignatureMsg);
+							}
+						} while (true);
+					}
+
+					skipBlanks(entryPoint, pos);
+
+					if (pos[0] != entryPoint.length())
+						throw new FbException(invalidMethodSignatureMsg);
+
+					switch (type)
+					{
+						case FUNCTION:
+							assert outCount == 1;
+
+							if (paramTypes.size() != inCount)
+							{
+								throw new FbException(String.format("Number of parameters (%d) in the Java method " +
+									"does not match the number of parameters (%d) in the function declaration",
+									paramTypes.size(), inCount));
+							}
+
+							routine.method = clazz.getMethod(methodName, paramTypes.toArray(new Class<?> [0]));
+
+							DataType returnType = dataTypesByClass.get(routine.method.getReturnType());
+
+							if (returnType == null)
+							{
+								throw new FbException(String.format("Unrecognized data type: '%s'",
+									routine.method.getReturnType().getName()));
+							}
+
+							routine.outputParameters.add(new Parameter(returnType, routine.method.getReturnType()));
+							break;
+
+						case PROCEDURE:
+							if (paramTypes.size() != inCount + outCount)
+							{
+								throw new FbException(String.format("Number of parameters (%d) in the Java method " +
+									"does not match the number of parameters (%d + %d) in the procedure declaration",
+									paramTypes.size(), inCount, outCount));
+							}
+
+							ArrayList<Class<?>> paramTypes2 = new ArrayList<>();
+
+							paramTypes
+								.stream()
+								.limit(inCount)
+								.forEach(p -> paramTypes2.add(p));
+
+							paramTypes
+								.stream()
+								.skip(inCount)
+								.forEach(p -> paramTypes2.add(Array.newInstance(p, 0).getClass()));
+
+							routine.method = clazz.getMethod(methodName, paramTypes2.toArray(new Class<?> [0]));
+
+							if (routine.method.getReturnType() != void.class)
+								throw new FbException("Java method for a procedure must return void");
+
+							break;
+					}
+
 					routine.setupParameters(status, routine.inputParameters, inMetadata, inBuilder);
 					routine.setupParameters(status, routine.outputParameters, outMetadata, outBuilder);
 				}
@@ -1153,7 +1209,7 @@ class ExternalEngine implements IExternalEngineIntf
 		}
 	}
 
-	private Parameter getDataType(String s, int[] pos) throws FbException
+	private Parameter getDataType(String s, int[] pos, boolean arrayRef) throws FbException
 	{
 		String name = getName(s, pos);
 
@@ -1179,10 +1235,18 @@ class ExternalEngine implements IExternalEngineIntf
 				throw new FbException("Expected ']'.");
 		}
 
+		if (arrayRef)
+		{
+			if (name.endsWith("[]"))
+				name = name.substring(0, name.length() - 2);
+			else
+				throw new FbException(String.format("Expected an array type but found '%s'", name));
+		}
+
 		Class<?> javaClass = javaClassesByName.get(name);
 
 		if (javaClass == null)
-			throw new FbException(String.format("Unrecognized data type: '%s'",  name));
+			throw new FbException(String.format("Unrecognized data type: '%s'", name));
 
 		return new Parameter(dataTypesByClass.get(javaClass), javaClass);
 	}

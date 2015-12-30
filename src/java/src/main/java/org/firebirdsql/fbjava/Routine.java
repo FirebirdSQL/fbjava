@@ -32,6 +32,13 @@ import com.sun.jna.Pointer;
 
 class Routine
 {
+	static enum Type
+	{
+		FUNCTION,
+		PROCEDURE,
+		TRIGGER
+	}
+
 	Method method;
 	List<Parameter> inputParameters = new ArrayList<>();
 	List<Parameter> outputParameters = new ArrayList<>();
@@ -46,20 +53,20 @@ class Routine
 				parameter.javaClass, metadata, builder, i);
 		}
 
-		IMessageMetadata outMetadata = builder.getMetadata(status);
+		IMessageMetadata builtMetadata = builder.getMetadata(status);
 		try
 		{
 			for (int i = 0; i < parameters.size(); ++i)
 			{
 				Parameter parameter = parameters.get(i);
-				parameter.nullOffset = outMetadata.getNullOffset(status, i);
-				parameter.offset = outMetadata.getOffset(status, i);
-				parameter.length = outMetadata.getLength(status, i);
+				parameter.nullOffset = builtMetadata.getNullOffset(status, i);
+				parameter.offset = builtMetadata.getOffset(status, i);
+				parameter.length = builtMetadata.getLength(status, i);
 			}
 		}
 		finally
 		{
-			outMetadata.release();
+			builtMetadata.release();
 		}
 	}
 
@@ -67,6 +74,14 @@ class Routine
 		throws FbException
 	{
 		Object[] values = new Object[parameters.size()];
+		getFromMessage(status, context, parameters, message, values);
+		return values;
+	}
+
+	void getFromMessage(IStatus status, IExternalContext context, List<Parameter> parameters, Pointer message,
+		Object[] values) throws FbException
+	{
+		assert values.length <= parameters.size();
 		int i = 0;
 
 		for (Parameter parameter : parameters)
@@ -74,16 +89,14 @@ class Routine
 			values[i] = parameter.conversion.getFromMessage(context, message, parameter.nullOffset, parameter.offset);
 			++i;
 		}
-
-		return values;
 	}
 
 	void putInMessage(IStatus status, IExternalContext context, List<Parameter> parameters, Object[] values,
-		Pointer message) throws FbException
+		int valuesStart, Pointer message) throws FbException
 	{
-		assert parameters.size() == values.length;
+		assert parameters.size() == values.length - valuesStart;
 
-		int i = 0;
+		int i = valuesStart;
 
 		for (Parameter parameter : parameters)
 		{
