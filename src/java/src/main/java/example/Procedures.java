@@ -18,6 +18,8 @@
  */
 package example;
 
+import org.firebirdsql.fbjava.ExternalResultSet;
+
 
 public class Procedures
 {
@@ -32,5 +34,41 @@ public class Procedures
 	public static void p3(int i, int[] o)
 	{
 		o[0] = i;
+	}
+
+	public static ExternalResultSet p4(int i, int[] o)
+	{
+		o[0] = i;
+
+		return new ExternalResultSet() {
+			@Override
+			public boolean fetch() throws Exception
+			{
+				return ++o[0] <= i + 5;
+			}
+
+			@Override
+			public void close()
+			{
+			}
+		};
+	}
+
+	public static ExternalResultSet p5(int start, int end, int[] o)
+	{
+		o[0] = start - 1;
+
+		return new ExternalResultSet() {
+			@Override
+			public boolean fetch() throws Exception
+			{
+				return ++o[0] <= end;
+			}
+
+			@Override
+			public void close()
+			{
+			}
+		};
 	}
 }

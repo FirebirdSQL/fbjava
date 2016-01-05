@@ -1181,8 +1181,12 @@ class ExternalEngine implements IExternalEngineIntf
 
 							routine.method = clazz.getMethod(methodName, paramTypes2.toArray(new Class<?> [0]));
 
-							if (routine.method.getReturnType() != void.class)
-								throw new FbException("Java method for a procedure must return void");
+							if (routine.method.getReturnType() != void.class &&
+								!ExternalResultSet.class.isAssignableFrom(routine.method.getReturnType()))
+							{
+								throw new FbException("Java method for a procedure must return void or an class " +
+									"implementing ExternalResultSet interface");	//// TODO: package name
+							}
 
 							break;
 					}

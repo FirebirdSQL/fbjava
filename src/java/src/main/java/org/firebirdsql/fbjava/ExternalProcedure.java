@@ -25,6 +25,7 @@ import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalProcedure;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalProcedureIntf;
 import org.firebirdsql.fbjava.FbClientLibrary.IExternalResultSet;
+import org.firebirdsql.fbjava.FbClientLibrary.IExternalResultSetIntf;
 import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
 
 import com.sun.jna.Pointer;
@@ -70,30 +71,84 @@ class ExternalProcedure implements IExternalProcedureIntf
 				int inCount = routine.inputParameters.size();
 				int outCount = routine.outputParameters.size();
 				Object[] inOut = new Object[inCount + outCount];
+				Object[] inOut2 = new Object[inCount + outCount];
 
 				routine.getFromMessage(status, context, routine.inputParameters, inMsg, inOut);
 
 				for (int i = inCount; i < inOut.length; ++i)
 					inOut[i] = Array.newInstance(routine.outputParameters.get(i - inCount).javaClass, 1);
 
-				//// TODO: selectable procedure
-				routine.method.invoke(null, inOut);
+				ExternalResultSet rs = (ExternalResultSet) routine.method.invoke(null, inOut);
 
-				for (int i = inCount; i < inOut.length; ++i)
-					inOut[i] = Array.get(inOut[i], 0);
+				if (rs == null)
+				{
+					for (int i = inCount; i < inOut.length; ++i)
+						inOut2[i] = Array.get(inOut[i], 0);
 
-				routine.putInMessage(status, context, routine.outputParameters, inOut, inCount, outMsg);
+					routine.putInMessage(status, context, routine.outputParameters, inOut2, inCount, outMsg);
+					return null;
+				}
+				else
+				{
+					class ExtResultSet implements IExternalResultSetIntf
+					{
+						private IExternalResultSet wrapper;
+
+						@Override
+						public void dispose()
+						{
+							try
+							{
+								rs.close();
+							}
+							catch (Throwable t)
+							{
+								//// TODO: ???
+							}
+
+							JnaUtil.unpin(wrapper);
+						}
+
+						@Override
+						public boolean fetch(IStatus status) throws FbException
+						{
+							try
+							{
+								if (rs.fetch())
+								{
+									for (int i = inCount; i < inOut.length; ++i)
+										inOut2[i] = Array.get(inOut[i], 0);
+
+									routine.putInMessage(status, context, routine.outputParameters,
+										inOut2, inCount, outMsg);
+									return true;
+								}
+								else
+									return false;
+							}
+							catch (Throwable t)
+							{
+								FbException.rethrow(t);
+								return false;
+							}
+						}
+					}
+
+					ExtResultSet wrapped = new ExtResultSet();
+					wrapped.wrapper = JnaUtil.pin(new IExternalResultSet(wrapped));
+					return wrapped.wrapper;
+				}
 			}
 		}
 		catch (InvocationTargetException e)
 		{
 			FbException.rethrow(e.getCause());
+			return null;
 		}
 		catch (Throwable t)
 		{
 			FbException.rethrow(t);
+			return null;
 		}
-
-		return null;
 	}
 }
