@@ -29,6 +29,8 @@ import java.sql.Statement;
 
 public class Functions
 {
+	private static int n = 0;
+
 	public static int f1()
 	{
 		return -1234567890;
@@ -161,5 +163,10 @@ public class Functions
 		}
 
 		return n;
+	}
+
+	public static int f20()
+	{
+		return ++n;
 	}
 }

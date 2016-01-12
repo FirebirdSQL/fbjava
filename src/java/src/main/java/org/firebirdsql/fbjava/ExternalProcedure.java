@@ -78,7 +78,7 @@ class ExternalProcedure implements IExternalProcedureIntf
 				for (int i = inCount; i < inOut.length; ++i)
 					inOut[i] = Array.newInstance(routine.outputParameters.get(i - inCount).javaClass, 1);
 
-				ExternalResultSet rs = (ExternalResultSet) routine.method.invoke(null, inOut);
+				ExternalResultSet rs = (ExternalResultSet) routine.run(inOut);
 
 				if (rs == null)
 				{
@@ -99,7 +99,10 @@ class ExternalProcedure implements IExternalProcedureIntf
 						{
 							try
 							{
-								rs.close();
+								routine.engine.runInClassLoader(() -> {
+									rs.close();
+									return null;
+								});
 							}
 							catch (Throwable t)
 							{
@@ -112,19 +115,24 @@ class ExternalProcedure implements IExternalProcedureIntf
 						@Override
 						public boolean fetch(IStatus status) throws FbException
 						{
+							//// TODO: batch
+
 							try
 							{
-								if (rs.fetch())
-								{
-									for (int i = inCount; i < inOut.length; ++i)
-										inOut2[i] = Array.get(inOut[i], 0);
+								return routine.engine.runInClassLoader(() -> {
+									if (rs.fetch())
+									{
+										for (int i = inCount; i < inOut.length; ++i)
+											inOut2[i] = Array.get(inOut[i], 0);
 
-									routine.putInMessage(status, context, routine.outputParameters,
-										inOut2, inCount, outMsg);
-									return true;
-								}
-								else
-									return false;
+										routine.putInMessage(status, context, routine.outputParameters,
+											inOut2, inCount, outMsg);
+
+										return true;
+									}
+									else
+										return false;
+								});
 							}
 							catch (Throwable t)
 							{

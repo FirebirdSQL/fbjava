@@ -39,9 +39,15 @@ class Routine
 		TRIGGER
 	}
 
+	ExternalEngine engine;
 	Method method;
 	List<Parameter> inputParameters = new ArrayList<>();
 	List<Parameter> outputParameters = new ArrayList<>();
+
+	Routine(ExternalEngine engine)
+	{
+		this.engine = engine;
+	}
 
 	void setupParameters(IStatus status, List<Parameter> parameters, IMessageMetadata metadata,
 		IMetadataBuilder builder) throws FbException
@@ -104,5 +110,10 @@ class Routine
 			parameter.conversion.putInMessage(context, message, parameter.nullOffset, parameter.offset, value);
 			++i;
 		}
+	}
+
+	Object run(Object[] args) throws Exception
+	{
+		return engine.runInClassLoader(() -> method.invoke(null, args));
 	}
 }

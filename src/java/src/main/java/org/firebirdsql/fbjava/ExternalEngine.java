@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.firebirdsql.encodings.Encoding;
@@ -1040,7 +1041,7 @@ class ExternalEngine implements IExternalEngineIntf
 	public IExternalFunction makeFunction(IStatus status, IExternalContext context,
 		IRoutineMetadata metadata, IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
 	{
-		Routine routine = getRoutine(status, metadata, inBuilder, outBuilder, Routine.Type.FUNCTION);
+		Routine routine = getRoutine(status, context, metadata, inBuilder, outBuilder, Routine.Type.FUNCTION);
 		return ExternalFunction.create(routine);
 	}
 
@@ -1048,7 +1049,7 @@ class ExternalEngine implements IExternalEngineIntf
 	public IExternalProcedure makeProcedure(IStatus status, IExternalContext context,
 		IRoutineMetadata metadata, IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
 	{
-		Routine routine = getRoutine(status, metadata, inBuilder, outBuilder, Routine.Type.PROCEDURE);
+		Routine routine = getRoutine(status, context, metadata, inBuilder, outBuilder, Routine.Type.PROCEDURE);
 		return ExternalProcedure.create(routine);
 	}
 
@@ -1060,7 +1061,7 @@ class ExternalEngine implements IExternalEngineIntf
 		return null;
 	}
 
-	private Routine getRoutine(IStatus status, IRoutineMetadata metadata,
+	private Routine getRoutine(IStatus status, IExternalContext context, IRoutineMetadata metadata,
 		IMetadataBuilder inBuilder, IMetadataBuilder outBuilder, Routine.Type type) throws FbException
 	{
 		try
@@ -1072,8 +1073,8 @@ class ExternalEngine implements IExternalEngineIntf
 			String className = entryPoint.substring(0, methodStart - 1).trim();
 			String methodName = entryPoint.substring(methodStart, paramsStart).trim();
 
-			Class<?> clazz = Class.forName(className, true, getClassLoader());
-			Routine routine = new Routine();
+			Class<?> clazz = runInClassLoader(() -> Class.forName(className, true, getClassLoader()));
+			Routine routine = new Routine(this);
 			ArrayList<Class<?>> paramTypes = new ArrayList<>();
 
 			int[] pos = {paramsStart + 1};
@@ -1299,6 +1300,21 @@ class ExternalEngine implements IExternalEngineIntf
 
 	private ClassLoader getClassLoader()
 	{
-		return getClass().getClassLoader();
+		return getClass().getClassLoader();	//// FIXME: database class loader
+	}
+
+	<T> T runInClassLoader(Callable<T> callable) throws Exception
+	{
+		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
+		try
+		{
+			Thread.currentThread().setContextClassLoader(getClassLoader());
+
+			return callable.call();
+		}
+		finally
+		{
+			Thread.currentThread().setContextClassLoader(oldClassLoader);
+		}
 	}
 }

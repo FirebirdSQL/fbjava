@@ -71,4 +71,25 @@ public class Procedures
 			}
 		};
 	}
+
+	public static ExternalResultSet p6(int start, int end, int[] o)
+	{
+		o[0] = start - 1;
+
+		return new ExternalResultSet() {
+			@Override
+			public boolean fetch() throws Exception
+			{
+				if (o[0] == 10)
+					throw new Exception("Can't go beyond 10.");
+
+				return ++o[0] <= end;
+			}
+
+			@Override
+			public void close()
+			{
+			}
+		};
+	}
 }
