@@ -18,12 +18,18 @@
  */
 package org.firebirdsql.fbjava;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
 import java.sql.Blob;
+import java.sql.SQLException;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +37,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.firebirdsql.encodings.Encoding;
@@ -59,12 +66,14 @@ import com.sun.jna.Pointer;
 class ExternalEngine implements IExternalEngineIntf
 {
 	private static final EncodingFactory encodingFactory = EncodingFactory.getDefaultInstance();
+	private static Map<String, SharedData> sharedDataMap = new ConcurrentHashMap<>();
 	private static Map<Integer, String> fbTypeNames;
 	private static Map<Class<?>, DataType> dataTypesByClass;
 	private static Map<String, Class<?>> javaClassesByName;
 	private static Map<Integer, DataType> defaultDataTypes;
 	private IExternalEngine wrapper;
 	private AtomicInteger refCounter = new AtomicInteger(1);
+	private SharedData sharedData;
 
 	private static class DataTypeReg
 	{
@@ -76,6 +85,43 @@ class ExternalEngine implements IExternalEngineIntf
 
 		Class<?> javaClass;
 		String[] names;
+	}
+
+	private static class SharedData
+	{
+		AtomicInteger attachmentCounter = new AtomicInteger(0);
+		DbClassLoader classLoader;
+
+		SharedData(String databaseName) throws SQLException, MalformedURLException
+		{
+			URL url = new URL(null, "fbjava:/", new URLStreamHandler() {
+				@Override
+				protected URLConnection openConnection(URL url) throws IOException
+				{
+					return new BlobConnection(url);
+				}
+			});
+
+			//// FIXME: User and password?
+			classLoader = new DbClassLoader(databaseName, "SYSDBA", "masterkey",
+				new URL[] {url}, getClass().getClassLoader());
+		}
+
+		void openAttachment(IStatus status, IExternalContext context)
+		{
+			attachmentCounter.incrementAndGet();
+		}
+
+		boolean closeAttachment(IStatus status, IExternalContext context) throws IOException
+		{
+			if (attachmentCounter.decrementAndGet() == 0)
+			{
+				classLoader.close();
+				return true;
+			}
+			else
+				return false;
+		}
 	}
 
 	private ExternalEngine()
@@ -1025,16 +1071,43 @@ class ExternalEngine implements IExternalEngineIntf
 	@Override
 	public void open(IStatus status, IExternalContext context, Pointer charSet, int charSetSize) throws FbException
 	{
+		try
+		{
+			sharedData = sharedDataMap.computeIfAbsent(context.getDatabaseName(), key -> {
+				try
+				{
+					return new SharedData(key);
+				}
+				catch (Exception e)
+				{
+					throw new RuntimeException(e);
+				}
+			});
+		}
+		catch (Throwable t)
+		{
+			FbException.rethrow(t);
+		}
 	}
 
 	@Override
 	public void openAttachment(IStatus status, IExternalContext context) throws FbException
 	{
+		sharedData.openAttachment(status, context);
 	}
 
 	@Override
 	public void closeAttachment(IStatus status, IExternalContext context) throws FbException
 	{
+		try
+		{
+			if (sharedData.closeAttachment(status, context))
+				sharedDataMap.remove(context.getDatabaseName());
+		}
+		catch (Throwable t)
+		{
+			FbException.rethrow(t);
+		}
 	}
 
 	@Override
@@ -1073,7 +1146,7 @@ class ExternalEngine implements IExternalEngineIntf
 			String className = entryPoint.substring(0, methodStart - 1).trim();
 			String methodName = entryPoint.substring(methodStart, paramsStart).trim();
 
-			Class<?> clazz = runInClassLoader(() -> Class.forName(className, true, getClassLoader()));
+			Class<?> clazz = runInClassLoader(() -> Class.forName(className, true, sharedData.classLoader));
 			Routine routine = new Routine(this);
 			ArrayList<Class<?>> paramTypes = new ArrayList<>();
 
@@ -1298,17 +1371,12 @@ class ExternalEngine implements IExternalEngineIntf
 		return s.charAt(pos[0]);
 	}
 
-	private ClassLoader getClassLoader()
-	{
-		return getClass().getClassLoader();	//// FIXME: database class loader
-	}
-
 	<T> T runInClassLoader(Callable<T> callable) throws Exception
 	{
 		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
 		try
 		{
-			Thread.currentThread().setContextClassLoader(getClassLoader());
+			Thread.currentThread().setContextClassLoader(sharedData.classLoader);
 
 			return callable.call();
 		}
