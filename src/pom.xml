@@ -5,18 +5,35 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.firebirdsql.fbjava</groupId>
-	<artifactId>fbjava</artifactId>
+	<artifactId>fbjava-parent</artifactId>
 	<version>0.1-SNAPSHOT</version>
-	<packaging>jar</packaging>
-	<name>fbjava</name>
+	<name>fbjava-parent</name>
+	<packaging>pom</packaging>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
 
+		<fbjava.version>0.1-SNAPSHOT</fbjava.version>
+
 		<jaybird.version>3.0.0-SNAPSHOT</jaybird.version>
 		<jna.version>4.2.1</jna.version>
 	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>net.java.dev.jna</groupId>
+				<artifactId>jna</artifactId>
+				<version>${jna.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<modules>
+		<module>fbjava</module>
+		<module>fbjava-tests</module>
+	</modules>
 
 	<build>
 		<plugins>
@@ -31,23 +48,6 @@
 			</plugin>
 		</plugins>
 	</build>
-
-	<dependencies>
-		<dependency>
-			<groupId>net.java.dev.jna</groupId>
-			<artifactId>jna</artifactId>
-			<version>${jna.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.firebirdsql.jdbc</groupId>
-			<artifactId>jaybird-jdk18</artifactId>
-			<version>${jaybird.version}</version>
-			<!-- FIXME: Use a Jaybird public release. -->
-			<scope>system</scope>
-			<systemPath>${project.basedir}/../../../jaybird.git/output/lib/jaybird-full-3.0.0-SNAPSHOT.jar</systemPath>
-		</dependency>
-	</dependencies>
 
 	<!--
 	<repositories>
