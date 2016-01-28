@@ -1,0 +1,2 @@
+BIN_DIR=$THIS_DIR
+JAR_DIR=$THIS_DIR/../jar

@@ -304,7 +304,7 @@ static void init()
 
 	string libDir(dlInfo.dli_fname, strrchr(dlInfo.dli_fname, DEFAULT_PATH_SEP) - dlInfo.dli_fname);
 	libDir += DEFAULT_PATH_SEP;
-	libDir += "fbjava/lib";	//// TODO: hardcoded "fbjava" is not good
+	libDir += "../jar";
 
 	vector<string> classPathEntries;
 
