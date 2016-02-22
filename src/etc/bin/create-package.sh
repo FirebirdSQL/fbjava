@@ -4,7 +4,7 @@ THIS_DIR=`readlink -f $0`
 THIS_DIR=`dirname $THIS_DIR`
 
 BASE_DIR=$THIS_DIR/../../..
-TARGET_DIR=$1
+TARGET_DIR=`readlink -f $1`
 CONFIG=release
 
 cd $BASE_DIR
