@@ -45,8 +45,7 @@ final public class DbClassLoader extends URLClassLoader
 		super(urls, parent);
 
 		connection = (FBConnection) DriverManager.getConnection(
-			//// FIXME: "jdbc:firebirdsql:embedded:" + databaseName + "?charSet=UTF-8", adminUser, adminPassword);
-			"jdbc:firebirdsql:native:" + databaseName + "?charSet=UTF-8", adminUser, adminPassword);
+			"jdbc:firebirdsql:embedded:" + databaseName + "?charSet=UTF-8", adminUser, adminPassword);
 		connection.setAutoCommit(false);
 		connection.setReadOnly(true);
 

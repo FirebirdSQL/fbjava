@@ -22,7 +22,7 @@ import java.sql.SQLException;
 
 import org.firebirdsql.gds.DatabaseParameterBuffer;
 import org.firebirdsql.gds.ng.IConnectionProperties;
-import org.firebirdsql.gds.ng.jna.FbClientDatabaseFactory;
+import org.firebirdsql.gds.ng.jna.FbEmbeddedDatabaseFactory;
 import org.firebirdsql.gds.ng.jna.JnaDatabase;
 import org.firebirdsql.gds.ng.jna.JnaDatabaseConnection;
 import org.firebirdsql.jna.fbclient.ISC_STATUS;
@@ -30,7 +30,7 @@ import org.firebirdsql.jna.fbclient.ISC_STATUS;
 import com.sun.jna.ptr.IntByReference;
 
 
-class InternalDatabaseFactory extends FbClientDatabaseFactory
+class InternalDatabaseFactory extends FbEmbeddedDatabaseFactory
 {
 	private static final InternalDatabaseFactory INSTANCE = new InternalDatabaseFactory();
 
