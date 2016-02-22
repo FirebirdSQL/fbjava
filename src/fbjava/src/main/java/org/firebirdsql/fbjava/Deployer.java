@@ -379,7 +379,7 @@ public class Deployer
 				++i;
 			}
 			else if (installPlugin)
-				doInstallPlugin();	//// FIXME: Not working with Firebird embedded in Java process.
+				doInstallPlugin();
 			else if (uninstallPlugin)
 				doUninstallPlugin();
 			else
