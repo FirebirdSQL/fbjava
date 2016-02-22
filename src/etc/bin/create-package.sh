@@ -15,7 +15,7 @@ mvn package dependency:copy-dependencies
 
 mkdir -p \
 	$TARGET_DIR/bin \
-    $TARGET_DIR/jar \
+	$TARGET_DIR/jar \
 	$TARGET_DIR/lib \
 	$TARGET_DIR/scripts
 
