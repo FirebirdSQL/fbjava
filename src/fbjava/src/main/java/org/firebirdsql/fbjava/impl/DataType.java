@@ -16,12 +16,12 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
-import org.firebirdsql.fbjava.FbClientLibrary.IMessageMetadata;
-import org.firebirdsql.fbjava.FbClientLibrary.IMetadataBuilder;
-import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IMessageMetadata;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IMetadataBuilder;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 
 import com.sun.jna.Pointer;
 

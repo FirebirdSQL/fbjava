@@ -346,9 +346,9 @@ static void init()
 		checkJavaException(env);
 	}
 
-	// Call org.firebirdsql.fbjava.Main.initialize(String)
+	// Call org.firebirdsql.fbjava.impl.Main.initialize(String)
 
-	jstring mainClassName = env->NewStringUTF("org.firebirdsql.fbjava.Main");
+	jstring mainClassName = env->NewStringUTF("org.firebirdsql.fbjava.impl.Main");
 	if (!mainClassName)
 		checkJavaException(env);
 

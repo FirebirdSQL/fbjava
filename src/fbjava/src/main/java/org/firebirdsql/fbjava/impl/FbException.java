@@ -16,9 +16,9 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
-import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import org.firebirdsql.gds.ISCConstants;
 
 import com.sun.jna.Pointer;

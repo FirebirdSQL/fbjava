@@ -16,26 +16,29 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
-import com.sun.jna.Memory;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginBase;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginConfig;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginFactory;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginFactoryIntf;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 
 
-/***
- * JNA Memory with AutoCloseable.
- *
- * @author asfernandes
- */
-class CloseableMemory extends Memory implements AutoCloseable
+class PluginFactory implements IPluginFactoryIntf
 {
-	public CloseableMemory(long size)
+	private PluginFactory()
 	{
-		super(size);
+	}
+
+	public static IPluginFactory create()
+	{
+		return JnaUtil.pin(new IPluginFactory(new PluginFactory()));
 	}
 
 	@Override
-	public void close()
+	public IPluginBase createPlugin(IStatus status, IPluginConfig factoryParameter) throws FbException
 	{
-		dispose();
+		return ExternalEngine.create();
 	}
 }

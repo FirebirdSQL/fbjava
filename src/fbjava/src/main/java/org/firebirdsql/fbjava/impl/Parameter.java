@@ -16,29 +16,21 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
-
-import org.firebirdsql.fbjava.FbClientLibrary.IPluginBase;
-import org.firebirdsql.fbjava.FbClientLibrary.IPluginConfig;
-import org.firebirdsql.fbjava.FbClientLibrary.IPluginFactory;
-import org.firebirdsql.fbjava.FbClientLibrary.IPluginFactoryIntf;
-import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
+package org.firebirdsql.fbjava.impl;
 
 
-class PluginFactory implements IPluginFactoryIntf
+class Parameter
 {
-	private PluginFactory()
+	Parameter(DataType dataType, Class<?> javaClass)
 	{
+		this.dataType = dataType;
+		this.javaClass = javaClass;
 	}
 
-	public static IPluginFactory create()
-	{
-		return JnaUtil.pin(new IPluginFactory(new PluginFactory()));
-	}
-
-	@Override
-	public IPluginBase createPlugin(IStatus status, IPluginConfig factoryParameter) throws FbException
-	{
-		return ExternalEngine.create();
-	}
+	DataType dataType;
+	Class<?> javaClass;
+	DataType.Conversion conversion;
+	int nullOffset;
+	int offset;
+	int length;
 }

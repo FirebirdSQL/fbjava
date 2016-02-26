@@ -16,27 +16,26 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import com.sun.jna.Memory;
 
 
-class JnaUtil
+/***
+ * JNA Memory with AutoCloseable.
+ *
+ * @author asfernandes
+ */
+class CloseableMemory extends Memory implements AutoCloseable
 {
-	private static final Set<Object> objects = Collections.newSetFromMap(new ConcurrentHashMap<Object, Boolean>());
-
-	public static <T> T pin(T o)
+	public CloseableMemory(long size)
 	{
-		boolean added = objects.add(o);
-		assert added;
-		return o;
+		super(size);
 	}
 
-	public static void unpin(Object o)
+	@Override
+	public void close()
 	{
-		boolean removed = objects.remove(o);
-		assert removed;
+		dispose();
 	}
 }

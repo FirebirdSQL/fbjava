@@ -16,21 +16,27 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
+
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 
-class Parameter
+class JnaUtil
 {
-	Parameter(DataType dataType, Class<?> javaClass)
+	private static final Set<Object> objects = Collections.newSetFromMap(new ConcurrentHashMap<Object, Boolean>());
+
+	public static <T> T pin(T o)
 	{
-		this.dataType = dataType;
-		this.javaClass = javaClass;
+		boolean added = objects.add(o);
+		assert added;
+		return o;
 	}
 
-	DataType dataType;
-	Class<?> javaClass;
-	DataType.Conversion conversion;
-	int nullOffset;
-	int offset;
-	int length;
+	public static void unpin(Object o)
+	{
+		boolean removed = objects.remove(o);
+		assert removed;
+	}
 }

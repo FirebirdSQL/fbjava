@@ -16,7 +16,7 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,19 +42,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.firebirdsql.encodings.Encoding;
 import org.firebirdsql.encodings.EncodingFactory;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalEngine;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalEngineIntf;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalFunction;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalProcedure;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalTrigger;
-import org.firebirdsql.fbjava.FbClientLibrary.IMessageMetadata;
-import org.firebirdsql.fbjava.FbClientLibrary.IMetadataBuilder;
-import org.firebirdsql.fbjava.FbClientLibrary.IReferenceCounted;
-import org.firebirdsql.fbjava.FbClientLibrary.IRoutineMetadata;
-import org.firebirdsql.fbjava.FbClientLibrary.ISC_DATE;
-import org.firebirdsql.fbjava.FbClientLibrary.ISC_TIME;
-import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
+import org.firebirdsql.fbjava.ExternalResultSet;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalEngine;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalEngineIntf;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalFunction;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalProcedure;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalTrigger;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IMessageMetadata;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IMetadataBuilder;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IReferenceCounted;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IRoutineMetadata;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.ISC_DATE;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.ISC_TIME;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import org.firebirdsql.gds.ISCConstants;
 import org.firebirdsql.gds.impl.GDSHelper;
 import org.firebirdsql.jdbc.FBBlob;

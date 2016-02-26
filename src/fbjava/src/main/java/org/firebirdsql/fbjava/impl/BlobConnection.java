@@ -16,7 +16,7 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

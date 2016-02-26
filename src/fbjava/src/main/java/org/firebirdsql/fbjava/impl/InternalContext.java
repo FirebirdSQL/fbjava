@@ -16,16 +16,16 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-import org.firebirdsql.fbjava.FbClientLibrary.IAttachment;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
-import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
-import org.firebirdsql.fbjava.FbClientLibrary.ITransaction;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IAttachment;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.ITransaction;
 
 
 class InternalContext implements AutoCloseable

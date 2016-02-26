@@ -16,7 +16,7 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
 import java.util.Arrays;
 import java.util.List;

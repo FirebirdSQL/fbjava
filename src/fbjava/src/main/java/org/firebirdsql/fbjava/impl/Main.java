@@ -16,11 +16,11 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
-import org.firebirdsql.fbjava.FbClientLibrary.IMaster;
-import org.firebirdsql.fbjava.FbClientLibrary.IPluginManager;
-import org.firebirdsql.fbjava.FbClientLibrary.IUtil;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IMaster;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginManager;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IUtil;
 
 import com.sun.jna.Native;
 

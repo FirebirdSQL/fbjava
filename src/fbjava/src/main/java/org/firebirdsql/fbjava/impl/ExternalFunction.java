@@ -16,14 +16,14 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
 import java.lang.reflect.InvocationTargetException;
 
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalContext;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalFunction;
-import org.firebirdsql.fbjava.FbClientLibrary.IExternalFunctionIntf;
-import org.firebirdsql.fbjava.FbClientLibrary.IStatus;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalFunction;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalFunctionIntf;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 
 import com.sun.jna.Pointer;
 

@@ -16,7 +16,7 @@
  *
  * All rights reserved.
  */
-package org.firebirdsql.fbjava;
+package org.firebirdsql.fbjava.impl;
 
 import org.firebirdsql.gds.GDSException;
 import org.firebirdsql.gds.impl.BaseGDSFactoryPlugin;
