@@ -25,7 +25,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IUtil;
 import com.sun.jna.Native;
 
 
-class Main
+final class Main
 {
 	public static FbClientLibrary library;
 	public static IMaster master;

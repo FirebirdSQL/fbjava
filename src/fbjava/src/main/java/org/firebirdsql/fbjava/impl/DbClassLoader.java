@@ -35,7 +35,7 @@ import org.firebirdsql.jdbc.FBConnection;
  *
  * @author <a href="mailto:adrianosf@gmail.com">Adriano dos Santos Fernandes</a>
  */
-final public class DbClassLoader extends URLClassLoader
+final class DbClassLoader extends URLClassLoader
 {
 	private FBConnection connection;
 

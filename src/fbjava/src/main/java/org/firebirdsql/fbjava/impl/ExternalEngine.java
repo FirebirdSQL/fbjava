@@ -64,7 +64,7 @@ import org.firebirdsql.jdbc.FBConnection;
 import com.sun.jna.Pointer;
 
 
-class ExternalEngine implements IExternalEngineIntf
+final class ExternalEngine implements IExternalEngineIntf
 {
 	private static final EncodingFactory encodingFactory = EncodingFactory.getDefaultInstance();
 	private static Map<String, SharedData> sharedDataMap = new ConcurrentHashMap<>();

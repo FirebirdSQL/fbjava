@@ -25,7 +25,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginFactoryIntf;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 
 
-class PluginFactory implements IPluginFactoryIntf
+final class PluginFactory implements IPluginFactoryIntf
 {
 	private PluginFactory()
 	{

@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-class JnaUtil
+final class JnaUtil
 {
 	private static final Set<Object> objects = Collections.newSetFromMap(new ConcurrentHashMap<Object, Boolean>());
 

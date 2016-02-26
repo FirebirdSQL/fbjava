@@ -30,7 +30,7 @@ import org.firebirdsql.jna.fbclient.ISC_STATUS;
 import com.sun.jna.ptr.IntByReference;
 
 
-class InternalDatabaseFactory extends FbEmbeddedDatabaseFactory
+final class InternalDatabaseFactory extends FbEmbeddedDatabaseFactory
 {
 	private static final InternalDatabaseFactory INSTANCE = new InternalDatabaseFactory();
 

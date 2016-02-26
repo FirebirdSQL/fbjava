@@ -31,7 +31,7 @@ import org.firebirdsql.jna.fbclient.ISC_STATUS;
 import com.sun.jna.ptr.IntByReference;
 
 
-public final class InternalFBConnection extends FBConnection
+public final class InternalFBConnection extends FBConnection	// must be public
 {
 	public InternalFBConnection(FBManagedConnection mc) throws SQLException
 	{

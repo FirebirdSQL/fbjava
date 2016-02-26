@@ -28,7 +28,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import com.sun.jna.Pointer;
 
 
-class ExternalFunction implements IExternalFunctionIntf
+final class ExternalFunction implements IExternalFunctionIntf
 {
 	private IExternalFunction wrapper;
 	private Routine routine;

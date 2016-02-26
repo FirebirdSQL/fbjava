@@ -32,7 +32,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import com.sun.jna.Pointer;
 
 
-class ExternalProcedure implements IExternalProcedureIntf
+final class ExternalProcedure implements IExternalProcedureIntf
 {
 	private IExternalProcedure wrapper;
 	private Routine routine;

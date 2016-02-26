@@ -28,7 +28,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.ITransaction;
 
 
-class InternalContext implements AutoCloseable
+final class InternalContext implements AutoCloseable
 {
 	private static ThreadLocal<InternalContext> tls = new ThreadLocal<InternalContext>() {
 		@Override

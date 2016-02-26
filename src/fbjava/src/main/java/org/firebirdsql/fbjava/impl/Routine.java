@@ -30,7 +30,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import com.sun.jna.Pointer;
 
 
-class Routine
+final class Routine
 {
 	static enum Type
 	{

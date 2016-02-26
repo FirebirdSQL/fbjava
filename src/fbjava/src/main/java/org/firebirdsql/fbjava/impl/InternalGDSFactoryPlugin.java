@@ -23,7 +23,7 @@ import org.firebirdsql.gds.impl.BaseGDSFactoryPlugin;
 import org.firebirdsql.gds.ng.FbDatabaseFactory;
 
 
-public final class InternalGDSFactoryPlugin extends BaseGDSFactoryPlugin
+public final class InternalGDSFactoryPlugin extends BaseGDSFactoryPlugin	// must be public
 {
 	public static final String INTERNAL_TYPE_NAME = "INTERNAL";
 	private static final String[] TYPE_ALIASES = {};

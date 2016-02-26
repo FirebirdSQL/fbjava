@@ -39,7 +39,7 @@ import org.firebirdsql.logging.LoggerFactory;
  *
  * @author <a href="mailto:adrianosf@gmail.com">Adriano dos Santos Fernandes</a>
  */
-public class BlobConnection extends URLConnection
+final class BlobConnection extends URLConnection
 {
 	private static final Logger log = LoggerFactory.getLogger(BlobConnection.class);
 

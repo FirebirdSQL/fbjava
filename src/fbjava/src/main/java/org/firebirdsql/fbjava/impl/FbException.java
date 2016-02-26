@@ -24,7 +24,7 @@ import org.firebirdsql.gds.ISCConstants;
 import com.sun.jna.Pointer;
 
 
-class FbException extends Exception
+final class FbException extends Exception
 {
 	private static final long serialVersionUID = 1L;
 

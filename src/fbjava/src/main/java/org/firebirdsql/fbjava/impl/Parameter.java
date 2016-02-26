@@ -19,7 +19,7 @@
 package org.firebirdsql.fbjava.impl;
 
 
-class Parameter
+final class Parameter
 {
 	Parameter(DataType dataType, Class<?> javaClass)
 	{
