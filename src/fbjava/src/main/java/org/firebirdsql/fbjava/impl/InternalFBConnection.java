@@ -25,7 +25,6 @@ import org.firebirdsql.gds.ng.jna.JnaDatabase;
 import org.firebirdsql.gds.ng.jna.JnaTransaction;
 import org.firebirdsql.jca.FBManagedConnection;
 import org.firebirdsql.jdbc.FBConnection;
-import org.firebirdsql.jdbc.InternalTransactionCoordinator;
 import org.firebirdsql.jna.fbclient.ISC_STATUS;
 
 import com.sun.jna.ptr.IntByReference;
@@ -36,10 +35,6 @@ public final class InternalFBConnection extends FBConnection	// must be public
 	public InternalFBConnection(FBManagedConnection mc) throws SQLException
 	{
 		super(mc);
-
-		// for autocommit off
-		txCoordinator.setCoordinator(new InternalTransactionCoordinator.LocalTransactionCoordinator(
-			this, getLocalTransaction()));
 
 		InternalContext internalContext = InternalContext.get();
 		IntByReference transactionHandle = new IntByReference();
@@ -60,9 +55,11 @@ public final class InternalFBConnection extends FBConnection	// must be public
 	}
 
 	@Override
-	public void setManagedEnvironment(boolean managedConnection)
+	public void setManagedEnvironment(boolean managedConnection) throws SQLException
 	{
 		// for autocommit off
+		checkValidity();
+		setTransactionCoordinator(managedConnection, false);
 	}
 
 	@Override
