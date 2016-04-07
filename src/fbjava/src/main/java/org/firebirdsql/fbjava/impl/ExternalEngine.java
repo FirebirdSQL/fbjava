@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.firebirdsql.encodings.Encoding;
 import org.firebirdsql.encodings.EncodingFactory;
+import org.firebirdsql.encodings.IEncodingFactory;
 import org.firebirdsql.fbjava.ExternalResultSet;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalEngine;
@@ -66,7 +67,7 @@ import com.sun.jna.Pointer;
 
 final class ExternalEngine implements IExternalEngineIntf
 {
-	private static final EncodingFactory encodingFactory = EncodingFactory.getDefaultInstance();
+	private static final IEncodingFactory encodingFactory = EncodingFactory.getPlatformDefault();
 	private static Map<String, SharedData> sharedDataMap = new ConcurrentHashMap<>();
 	private static Map<Integer, String> fbTypeNames;
 	private static Map<Class<?>, DataType> dataTypesByClass;
