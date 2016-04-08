@@ -26,7 +26,8 @@ cp $BASE_DIR/src/fbjava/target/*.jar $TARGET_DIR/jar
 cp $BASE_DIR/src/fbjava/target/dependency/*.jar $TARGET_DIR/jar
 cp $BASE_DIR/output/$CONFIG/lib/libfbjava.so $TARGET_DIR/lib
 cp $BASE_DIR/src/fbjava/src/main/resources/org/firebirdsql/fbjava/*.sql $TARGET_DIR/scripts
-cp $BASE_DIR/src/etc/scripts/*.sql $TARGET_DIR/scripts
+cp $BASE_DIR/src/etc/conf/fbjava.conf $TARGET_DIR/conf
+cp $BASE_DIR/src/etc/scripts/java-security.sql $TARGET_DIR/scripts
 
 if [ -f $TARGET_DIR/conf/java-security.fdb ]; then
 	rm $TARGET_DIR/conf/java-security.fdb

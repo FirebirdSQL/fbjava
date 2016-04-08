@@ -126,7 +126,7 @@ final class ExternalEngine implements IExternalEngineIntf
 		}
 	}
 
-	private ExternalEngine()
+	private ExternalEngine(String securityDatabase)
 	{
 	}
 
@@ -1034,9 +1034,9 @@ final class ExternalEngine implements IExternalEngineIntf
 		return iscTime.value;
 	}
 
-	public static IExternalEngine create()
+	public static IExternalEngine create(String securityDatabase)
 	{
-		ExternalEngine wrapped = new ExternalEngine();
+		ExternalEngine wrapped = new ExternalEngine(securityDatabase);
 		wrapped.wrapper = JnaUtil.pin(new IExternalEngine(wrapped));
 		return wrapped.wrapper;
 	}

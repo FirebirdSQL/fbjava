@@ -18,6 +18,8 @@
  */
 package org.firebirdsql.fbjava.impl;
 
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IConfig;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IConfigEntry;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginBase;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginConfig;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginFactory;
@@ -37,8 +39,28 @@ final class PluginFactory implements IPluginFactoryIntf
 	}
 
 	@Override
-	public IPluginBase createPlugin(IStatus status, IPluginConfig factoryParameter) throws FbException
+	public IPluginBase createPlugin(IStatus status, IPluginConfig pluginConfig) throws FbException
 	{
-		return ExternalEngine.create();
+		String securityDatabase;
+
+		IConfig config = pluginConfig.getDefaultConfig(status);
+		try
+		{
+			IConfigEntry entry = config.find(status, "SecurityDatabase");
+			try
+			{
+				securityDatabase = entry.getValue();
+			}
+			finally
+			{
+				entry.release();
+			}
+		}
+		finally
+		{
+			config.release();
+		}
+
+		return ExternalEngine.create(securityDatabase);
 	}
 }
