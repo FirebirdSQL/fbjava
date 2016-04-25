@@ -169,4 +169,9 @@ public class Functions
 	{
 		return ++n;
 	}
+
+	public static String f21(String property)
+	{
+		return System.getProperty(property);
+	}
 }

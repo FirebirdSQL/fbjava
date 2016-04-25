@@ -21,6 +21,10 @@ package org.firebirdsql.fbjava.impl;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.CodeSource;
+import java.security.PermissionCollection;
+import java.security.Permissions;
+import java.security.cert.Certificate;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -37,15 +41,22 @@ import org.firebirdsql.jdbc.FBConnection;
  */
 final class DbClassLoader extends URLClassLoader
 {
+	String databaseName;
 	private FBConnection connection;
+	CodeSource codeSource;
+	PermissionCollection codeSourcePermission = new Permissions();
 
-	DbClassLoader(String databaseName, String adminUser, String adminPassword, URL[] urls, ClassLoader parent)
+	DbClassLoader(String databaseName, URL[] urls, ClassLoader parent)
 		throws SQLException
 	{
 		super(urls, parent);
 
+		this.databaseName = databaseName;
+
+		codeSource = new CodeSource(urls[0], (Certificate[]) null);
+
 		connection = (FBConnection) DriverManager.getConnection(
-			"jdbc:firebirdsql:embedded:" + databaseName + "?charSet=UTF-8", adminUser, adminPassword);
+			"jdbc:firebirdsql:embedded:" + databaseName + "?charSet=UTF-8");
 		connection.setAutoCommit(false);
 		connection.setReadOnly(true);
 
@@ -54,6 +65,8 @@ final class DbClassLoader extends URLClassLoader
 		tpb.addArgument(ISCConstants.isc_tpb_rec_version);
 		tpb.addArgument(ISCConstants.isc_tpb_read);
 		connection.setTransactionParameters(Connection.TRANSACTION_READ_COMMITTED, tpb);
+
+		DbPolicy.databaseOpened();
 	}
 
 	@Override
@@ -61,12 +74,19 @@ final class DbClassLoader extends URLClassLoader
 	{
 		try
 		{
+			DbPolicy.databaseClosed();
 			connection.close();
 		}
 		catch (SQLException e)
 		{
 			throw new IOException(e);
 		}
+	}
+
+	@Override
+	protected PermissionCollection getPermissions(CodeSource codesource)
+	{
+		return codeSourcePermission;
 	}
 
 	public Connection getConnection()

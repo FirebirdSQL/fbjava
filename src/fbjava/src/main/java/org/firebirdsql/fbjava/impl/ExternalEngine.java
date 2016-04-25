@@ -28,6 +28,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
+import java.security.AccessControlContext;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.security.ProtectionDomain;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -39,6 +43,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.security.auth.Subject;
 
 import org.firebirdsql.encodings.Encoding;
 import org.firebirdsql.encodings.EncodingFactory;
@@ -104,9 +110,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				}
 			});
 
-			//// FIXME: User and password?
-			classLoader = new DbClassLoader(databaseName, "SYSDBA", "masterkey",
-				new URL[] {url}, getClass().getClassLoader());
+			classLoader = new DbClassLoader(databaseName, new URL[] {url}, getClass().getClassLoader());
 		}
 
 		void openAttachment(IStatus status, IExternalContext context)
@@ -1148,7 +1152,8 @@ final class ExternalEngine implements IExternalEngineIntf
 			String className = entryPoint.substring(0, methodStart - 1).trim();
 			String methodName = entryPoint.substring(methodStart, paramsStart).trim();
 
-			Class<?> clazz = runInClassLoader(() -> Class.forName(className, true, sharedData.classLoader));
+			Class<?> clazz = runInClassLoader(context.getUserName(),
+				() -> Class.forName(className, true, sharedData.classLoader));
 			Routine routine = new Routine(this);
 			ArrayList<Class<?>> paramTypes = new ArrayList<>();
 
@@ -1373,14 +1378,28 @@ final class ExternalEngine implements IExternalEngineIntf
 		return s.charAt(pos[0]);
 	}
 
-	<T> T runInClassLoader(Callable<T> callable) throws Exception
+	<T> T runInClassLoader(String userName, Callable<T> callable) throws Exception
 	{
 		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
 		try
 		{
 			Thread.currentThread().setContextClassLoader(sharedData.classLoader);
 
-			return callable.call();
+			Subject subj = DbPolicy.getUserSubject(sharedData.classLoader.databaseName, userName);
+
+			ProtectionDomain[] protectionDomains = {new ProtectionDomain(sharedData.classLoader.codeSource,
+				sharedData.classLoader.codeSourcePermission, sharedData.classLoader,
+				subj.getPrincipals().toArray(new Principal[1]))};
+
+			AccessControlContext acc = new AccessControlContext(protectionDomains);
+
+			return Subject.doAsPrivileged(subj, new PrivilegedExceptionAction<T>() {
+				@Override
+				public T run() throws Exception
+				{
+					return callable.call();
+				}
+			}, acc);
 		}
 		finally
 		{

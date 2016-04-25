@@ -112,8 +112,8 @@ final class Routine
 		}
 	}
 
-	Object run(Object[] args) throws Exception
+	Object run(IExternalContext context, Object[] args) throws Exception
 	{
-		return engine.runInClassLoader(() -> method.invoke(null, args));
+		return engine.runInClassLoader(context.getUserName(), () -> method.invoke(null, args));
 	}
 }

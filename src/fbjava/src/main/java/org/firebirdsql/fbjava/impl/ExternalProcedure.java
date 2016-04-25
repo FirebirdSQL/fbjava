@@ -79,7 +79,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 				for (int i = inCount; i < inOut.length; ++i)
 					inOut[i] = Array.newInstance(routine.outputParameters.get(i - inCount).javaClass, 1);
 
-				ExternalResultSet rs = (ExternalResultSet) routine.run(inOut);
+				ExternalResultSet rs = (ExternalResultSet) routine.run(context, inOut);
 
 				if (rs == null)
 				{
@@ -91,6 +91,8 @@ final class ExternalProcedure implements IExternalProcedureIntf
 				}
 				else
 				{
+					String userName = context.getUserName();
+
 					class ExtResultSet implements IExternalResultSetIntf
 					{
 						private IExternalResultSet wrapper;
@@ -100,7 +102,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 						{
 							try
 							{
-								routine.engine.runInClassLoader(() -> {
+								routine.engine.runInClassLoader(userName, () -> {
 									rs.close();
 									return null;
 								});
@@ -120,7 +122,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 
 							try
 							{
-								return routine.engine.runInClassLoader(() -> {
+								return routine.engine.runInClassLoader(userName, () -> {
 									if (rs.fetch())
 									{
 										for (int i = inCount; i < inOut.length; ++i)

@@ -1,0 +1,223 @@
+/*
+ * FB/Java plugin
+ *
+ * Distributable under LGPL license.
+ * You may obtain a copy of the License at http://www.gnu.org/copyleft/lgpl.html
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * LGPL License for more details.
+ *
+ * This file was created by members of the Firebird development team.
+ * All individual contributions remain the Copyright (C) of those
+ * individuals.  Contributors to this file are either listed here or
+ * can be obtained from a git log command.
+ *
+ * All rights reserved.
+ */
+package org.firebirdsql.fbjava.impl;
+
+import java.lang.reflect.Constructor;
+import java.security.AccessController;
+import java.security.AllPermission;
+import java.security.Permission;
+import java.security.PermissionCollection;
+import java.security.Permissions;
+import java.security.Policy;
+import java.security.Principal;
+import java.security.PrivilegedAction;
+import java.security.ProtectionDomain;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.HashSet;
+
+import javax.security.auth.Subject;
+
+import org.firebirdsql.gds.ISCConstants;
+import org.firebirdsql.gds.TransactionParameterBuffer;
+import org.firebirdsql.jdbc.FBConnection;
+
+
+/**
+ * Security policy configured in a database.
+ *
+ * @author <a href="mailto:adrianosf@gmail.com">Adriano dos Santos Fernandes</a>
+ */
+final class DbPolicy extends Policy
+{
+	private static int count;
+	private static String securityDatabase;
+	private static FBConnection securityDb;
+	private static PreparedStatement stmt;
+	private static HashMap<String, Subject> userSubjects = new HashMap<String, Subject>();
+
+	public DbPolicy(String securityDatabase)
+	{
+		DbPolicy.securityDatabase = securityDatabase;
+	}
+
+	static void databaseOpened() throws SQLException
+	{
+		synchronized (securityDatabase)
+		{
+			if (count++ == 0)
+			{
+				assert securityDb == null;
+
+				securityDb = (FBConnection) DriverManager.getConnection(
+					"jdbc:firebirdsql:embedded:" + securityDatabase + "?charSet=UTF-8");
+				securityDb.setAutoCommit(false);
+				securityDb.setReadOnly(true);
+
+				TransactionParameterBuffer tpb = securityDb.createTransactionParameterBuffer();
+				tpb.addArgument(ISCConstants.isc_tpb_read_committed);
+				tpb.addArgument(ISCConstants.isc_tpb_rec_version);
+				tpb.addArgument(ISCConstants.isc_tpb_read);
+				securityDb.setTransactionParameters(Connection.TRANSACTION_READ_COMMITTED, tpb);
+
+				stmt = securityDb.prepareStatement(
+					"select p.class_name, p.arg1, p.arg2\n" +
+					"  from database_permission_group dpg\n" +
+					"  join permission_group pg\n" +
+					"    on pg.id = dpg.permission_group\n" +
+					"  join permission p\n" +
+					"    on p.permission_group = pg.id\n" +
+					"  where cast(? as varchar(1024)) similar to dpg.database_pattern escape '\\' and\n" +
+					"  p.user_name in (?, 'PUBLIC')");
+			}
+		}
+	}
+
+	static void databaseClosed() throws SQLException
+	{
+		synchronized (securityDatabase)
+		{
+			if (--count == 0)
+			{
+				stmt.close();
+				securityDb.close();
+				securityDb = null;
+			}
+		}
+	}
+
+	static synchronized Subject getUserSubject(String databaseName, String userName)
+	{
+		synchronized (userSubjects)
+		{
+			Subject subj = userSubjects.get(userName);
+			if (subj != null)
+				return subj;
+
+			final HashSet<Principal> principals = new HashSet<Principal>();
+			principals.add(new DbPrincipal(databaseName, userName));
+			subj = new Subject(true, principals, new HashSet<Object>(), new HashSet<Object>());
+
+			userSubjects.put(userName, subj);
+
+			return subj;
+		}
+	}
+
+	@Override
+	public PermissionCollection getPermissions(final ProtectionDomain domain)
+	{
+		final Permissions permissions = new Permissions();
+
+		// Grant all permission to code stored at filesystem
+		if ("file".equals(domain.getCodeSource().getLocation().getProtocol()))
+		{
+			permissions.add(new AllPermission());
+			return permissions;
+		}
+
+		return AccessController.doPrivileged(new PrivilegedAction<PermissionCollection>() {
+			@Override
+			public PermissionCollection run()
+			{
+				for (Principal principal : domain.getPrincipals())
+				{
+					if (principal instanceof DbPrincipal)
+						loadPermissions(((DbPrincipal) principal).getDatabaseName(), principal.getName(), permissions);
+				}
+
+				return permissions;
+			}
+		});
+	}
+
+	@Override
+	public boolean implies(final ProtectionDomain domain, final Permission permission)
+	{
+		// Grant all permission to code stored at filesystem
+		if ("file".equals(domain.getCodeSource().getLocation().getProtocol()))
+			return true;
+
+		return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
+			@Override
+			public Boolean run()
+			{
+				PermissionCollection perms = getPermissions(domain);
+				return perms.implies(permission);
+			}
+		});
+	}
+
+	private void loadPermissions(String databaseName, String userName, PermissionCollection permissions)
+	{
+		//// TODO: cache
+		synchronized (stmt)
+		{
+			try
+			{
+				stmt.setString(1, databaseName);
+				stmt.setString(2, userName);
+				ResultSet rs = stmt.executeQuery();
+				try
+				{
+					while (rs.next())
+					{
+						try
+						{
+							Class<?> clazz = Class.forName(rs.getString(1));
+							String arg1 = rs.getString(2);
+							String arg2 = rs.getString(3);
+
+							if (arg2 != null)
+							{
+								Constructor<?> constr = clazz.getDeclaredConstructor(
+									String.class, String.class);
+								permissions.add((Permission) constr.newInstance(arg1, arg2));
+							}
+							else if (arg1 != null)
+							{
+								Constructor<?> constr = clazz.getDeclaredConstructor(String.class);
+								permissions.add((Permission) constr.newInstance(arg1));
+							}
+							else
+							{
+								Constructor<?> constr = clazz.getDeclaredConstructor();
+								permissions.add((Permission) constr.newInstance());
+							}
+						}
+						catch (Exception e)
+						{
+						}
+					}
+				}
+				finally
+				{
+					rs.close();
+				}
+			}
+			catch (SQLException e)
+			{
+			}
+		}
+	}
+}

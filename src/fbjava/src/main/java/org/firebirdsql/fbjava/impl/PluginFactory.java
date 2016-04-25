@@ -18,6 +18,8 @@
  */
 package org.firebirdsql.fbjava.impl;
 
+import java.security.Policy;
+
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IConfig;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IConfigEntry;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginBase;
@@ -29,6 +31,8 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 
 final class PluginFactory implements IPluginFactoryIntf
 {
+	private static Boolean securityInitialized = false;
+
 	private PluginFactory()
 	{
 	}
@@ -59,6 +63,18 @@ final class PluginFactory implements IPluginFactoryIntf
 		finally
 		{
 			config.release();
+		}
+
+		synchronized (securityInitialized)
+		{
+			if (!securityInitialized)
+			{
+				// Set the police and install the security manager.
+				Policy.setPolicy(new DbPolicy(securityDatabase));
+				System.setSecurityManager(new SecurityManager());
+
+				securityInitialized = true;
+			}
 		}
 
 		return ExternalEngine.create(securityDatabase);

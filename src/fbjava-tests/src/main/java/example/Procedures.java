@@ -92,4 +92,29 @@ public class Procedures
 			}
 		};
 	}
+
+	public static ExternalResultSet p7(String property, String[] result)
+	{
+		return new ExternalResultSet() {
+			boolean first = true;
+
+			@Override
+			public boolean fetch() throws Exception
+			{
+				if (first)
+				{
+					result[0] = System.getProperty(property);
+					first = false;
+					return true;
+				}
+				else
+					return false;
+			}
+
+			@Override
+			public void close()
+			{
+			}
+		};
+	}
 }
