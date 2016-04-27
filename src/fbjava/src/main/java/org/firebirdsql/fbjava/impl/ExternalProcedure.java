@@ -93,6 +93,8 @@ final class ExternalProcedure implements IExternalProcedureIntf
 				{
 					String userName = context.getUserName();
 
+					//// FIXME: Stack trace filtering is not working fully correct here.
+
 					class ExtResultSet implements IExternalResultSetIntf
 					{
 						private IExternalResultSet wrapper;
@@ -102,10 +104,12 @@ final class ExternalProcedure implements IExternalProcedureIntf
 						{
 							try
 							{
-								routine.engine.runInClassLoader(userName, () -> {
-									rs.close();
-									return null;
-								});
+								routine.engine.runInClassLoader(userName,
+									routine.method.getDeclaringClass().getName(), routine.method.getName(),
+									() -> {
+										rs.close();
+										return null;
+									});
 							}
 							catch (Throwable t)
 							{
@@ -122,20 +126,22 @@ final class ExternalProcedure implements IExternalProcedureIntf
 
 							try
 							{
-								return routine.engine.runInClassLoader(userName, () -> {
-									if (rs.fetch())
-									{
-										for (int i = inCount; i < inOut.length; ++i)
-											inOut2[i] = Array.get(inOut[i], 0);
+								return routine.engine.runInClassLoader(userName,
+									routine.method.getDeclaringClass().getName(), routine.method.getName(),
+									() -> {
+										if (rs.fetch())
+										{
+											for (int i = inCount; i < inOut.length; ++i)
+												inOut2[i] = Array.get(inOut[i], 0);
 
-										routine.putInMessage(status, context, routine.outputParameters,
-											inOut2, inCount, outMsg);
+											routine.putInMessage(status, context, routine.outputParameters,
+												inOut2, inCount, outMsg);
 
-										return true;
-									}
-									else
-										return false;
-								});
+											return true;
+										}
+										else
+											return false;
+									});
 							}
 							catch (Throwable t)
 							{

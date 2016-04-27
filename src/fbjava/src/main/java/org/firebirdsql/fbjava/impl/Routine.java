@@ -112,8 +112,18 @@ final class Routine
 		}
 	}
 
-	Object run(IExternalContext context, Object[] args) throws Exception
+	Object run(IExternalContext context, Object[] args) throws Throwable
 	{
-		return engine.runInClassLoader(context.getUserName(), () -> method.invoke(null, args));
+		return engine.runInClassLoader(context.getUserName(), method.getDeclaringClass().getName(), method.getName(),
+			() -> {
+				try
+				{
+					return method.invoke(null, args);
+				}
+				catch (Exception | ExceptionInInitializerError t)
+				{
+					throw t.getCause();
+				}
+			});
 	}
 }

@@ -19,6 +19,8 @@
 package example;
 
 import java.math.BigDecimal;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -173,5 +175,54 @@ public class Functions
 	public static String f21(String property)
 	{
 		return System.getProperty(property);
+	}
+
+	public static String f22(String property)
+	{
+		return AccessController.doPrivileged(new PrivilegedAction<String>() {
+			@Override
+			public String run()
+			{
+				return System.getProperty(property);
+			}
+		});
+	}
+
+	public static int f23() throws Exception
+	{
+		throw new Exception("f23");
+	}
+
+	public static int f24() throws Exception
+	{
+		try
+		{
+			f23();
+			return 0;
+		}
+		catch (Exception e)
+		{
+			throw new Exception("f24", e);
+		}
+	}
+
+	public static class C1
+	{
+		public static String s = System.getProperty("x");
+
+		public static int f25()
+		{
+			return 0;
+		}
+	}
+
+	public static class C2
+	{
+		public static String s = System.getProperty("java.version");
+
+		public static int f26()
+		{
+			return 0;
+		}
 	}
 }

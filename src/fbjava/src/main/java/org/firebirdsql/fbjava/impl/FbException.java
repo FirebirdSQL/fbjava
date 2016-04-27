@@ -18,6 +18,9 @@
  */
 package org.firebirdsql.fbjava.impl;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import org.firebirdsql.gds.ISCConstants;
 
@@ -38,19 +41,25 @@ final class FbException extends Exception
 		super(msg);
 	}
 
+	public FbException(String msg, Throwable t)
+	{
+		super(msg, t);
+	}
+
 	public static void rethrow(Throwable t) throws FbException
 	{
-		t.printStackTrace(System.out);	//// FIXME:
-
-		if (t instanceof FbException)
-			throw (FbException) t;
-		else
-			throw new FbException(t);
+		throw new FbException(null, t);
 	}
 
 	public static void catchException(IStatus status, Throwable t)
 	{
-		String msg = t.getMessage();
+		while (t != null && t instanceof FbException && t.getMessage() == null)
+			t = t.getCause();
+
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		t.printStackTrace(pw);
+		String msg = sw.toString();
 
 		try (CloseableMemory memory = new CloseableMemory(msg.length() + 1))
 		{

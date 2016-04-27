@@ -30,6 +30,7 @@ import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.security.AccessControlContext;
 import java.security.Principal;
+import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.security.ProtectionDomain;
 import java.sql.Blob;
@@ -40,7 +41,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -1152,8 +1152,9 @@ final class ExternalEngine implements IExternalEngineIntf
 			String className = entryPoint.substring(0, methodStart - 1).trim();
 			String methodName = entryPoint.substring(methodStart, paramsStart).trim();
 
-			Class<?> clazz = runInClassLoader(context.getUserName(),
+			Class<?> clazz = runInClassLoader(context.getUserName(), className, methodName,
 				() -> Class.forName(className, true, sharedData.classLoader));
+
 			Routine routine = new Routine(this);
 			ArrayList<Class<?>> paramTypes = new ArrayList<>();
 
@@ -1378,7 +1379,8 @@ final class ExternalEngine implements IExternalEngineIntf
 		return s.charAt(pos[0]);
 	}
 
-	<T> T runInClassLoader(String userName, Callable<T> callable) throws Exception
+	<T> T runInClassLoader(String userName, String className, String methodName, CallableThrowable<T> callable)
+		throws Throwable
 	{
 		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
 		try
@@ -1393,13 +1395,71 @@ final class ExternalEngine implements IExternalEngineIntf
 
 			AccessControlContext acc = new AccessControlContext(protectionDomains);
 
-			return Subject.doAsPrivileged(subj, new PrivilegedExceptionAction<T>() {
-				@Override
-				public T run() throws Exception
+			try
+			{
+				return Subject.doAsPrivileged(subj, new PrivilegedExceptionAction<T>() {
+					@Override
+					public T run() throws Exception
+					{
+						try
+						{
+							return callable.call();
+						}
+						catch (Throwable t)
+						{
+							// We cannot pass a Throwable with PrivilegedExceptionAction, so we enclose it with an
+							// Exception. This is the reason we call getClause() two times below.
+							throw new Exception(t);
+						}
+					}
+				}, acc);
+			}
+			catch (PrivilegedActionException privilegedException)
+			{
+				// Lets filter the stack trace to remove garbage from user POV. We start removing the
+				// privilegedException trace, then we remove up to the user class and method name.
+				// From all frames.
+
+				Throwable userException = privilegedException.getCause().getCause();	// explained above
+				StackTraceElement[] privilegedTrace = privilegedException.getStackTrace();
+
+				for (Throwable currentException = userException;
+					 currentException != null;
+					 currentException = currentException.getCause())
 				{
-					return callable.call();
+					StackTraceElement[] currentTrace = currentException.getStackTrace();
+
+					for (int i = currentTrace.length - 1, j = privilegedTrace.length - 1; i >= 0; --i)
+					{
+						if (!currentTrace[i].equals(privilegedTrace[j]))
+							break;
+
+						if (j-- == 0)
+						{
+							int k = i;
+
+							while (--k >= 0 &&
+								!(currentTrace[k].getClassName().equals(className) &&
+								  (currentTrace[k].getMethodName().equals(methodName) ||
+								   "<clinit>".equals(currentTrace[k].getMethodName()))))
+							{
+							}
+
+							if (k < 0 &&
+								!(currentException instanceof ExceptionInInitializerError ||
+								  currentException instanceof NoClassDefFoundError))
+							{
+								k = i - 1;
+							}
+
+							currentException.setStackTrace(Arrays.copyOf(currentTrace, k + 1));
+							break;
+						}
+					}
 				}
-			}, acc);
+
+				throw userException;
+			}
 		}
 		finally
 		{
