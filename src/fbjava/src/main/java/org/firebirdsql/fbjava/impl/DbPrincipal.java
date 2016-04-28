@@ -29,18 +29,20 @@ import java.security.Principal;
 final class DbPrincipal implements Principal
 {
 	private String databaseName;
-	private String name;
+	private String roleName;
+	private String userName;
 
-	public DbPrincipal(String databaseName, String name)
+	public DbPrincipal(String databaseName, String roleName, String userName)
 	{
 		this.databaseName = databaseName;
-		this.name = name;
+		this.roleName = roleName;
+		this.userName = userName;
 	}
 
 	@Override
 	public String getName()
 	{
-		return name;
+		return userName;
 	}
 
 	@Override
@@ -48,23 +50,29 @@ final class DbPrincipal implements Principal
 	{
 		return (another instanceof DbPrincipal) &&
 			databaseName.equals(((DbPrincipal) another).databaseName) &&
-			name.equals(((DbPrincipal) another).name);
+			roleName.equals(((DbPrincipal) another).roleName) &&
+			userName.equals(((DbPrincipal) another).userName);
 	}
 
 	@Override
 	public int hashCode()
 	{
-		return name.hashCode();
+		return userName.hashCode();
 	}
 
 	@Override
 	public String toString()
 	{
-		return databaseName + "::" + name;
+		return databaseName + "::" + userName;
 	}
 
 	String getDatabaseName()
 	{
 		return databaseName;
+	}
+
+	public String getRoleName()
+	{
+		return roleName;
 	}
 }

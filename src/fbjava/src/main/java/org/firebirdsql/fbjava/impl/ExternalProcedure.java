@@ -79,7 +79,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 				for (int i = inCount; i < inOut.length; ++i)
 					inOut[i] = Array.newInstance(routine.outputParameters.get(i - inCount).javaClass, 1);
 
-				ExternalResultSet rs = (ExternalResultSet) routine.run(context, inOut);
+				ExternalResultSet rs = (ExternalResultSet) routine.run(status, context, inOut);
 
 				if (rs == null)
 				{
@@ -91,8 +91,6 @@ final class ExternalProcedure implements IExternalProcedureIntf
 				}
 				else
 				{
-					String userName = context.getUserName();
-
 					//// FIXME: Stack trace filtering is not working fully correct here.
 
 					class ExtResultSet implements IExternalResultSetIntf
@@ -104,7 +102,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 						{
 							try
 							{
-								routine.engine.runInClassLoader(userName,
+								routine.engine.runInClassLoader(status, context,
 									routine.method.getDeclaringClass().getName(), routine.method.getName(),
 									() -> {
 										rs.close();
@@ -126,7 +124,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 
 							try
 							{
-								return routine.engine.runInClassLoader(userName,
+								return routine.engine.runInClassLoader(status, context,
 									routine.method.getDeclaringClass().getName(), routine.method.getName(),
 									() -> {
 										if (rs.fetch())

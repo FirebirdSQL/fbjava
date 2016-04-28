@@ -33,11 +33,14 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.HashSet;
 
 import javax.security.auth.Subject;
 
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import org.firebirdsql.gds.ISCConstants;
 import org.firebirdsql.gds.TransactionParameterBuffer;
 import org.firebirdsql.jdbc.FBConnection;
@@ -82,13 +85,16 @@ final class DbPolicy extends Policy
 
 				stmt = securityDb.prepareStatement(
 					"select p.class_name, p.arg1, p.arg2\n" +
-					"  from database_permission_group dpg\n" +
+					"  from permission_group_grant pgg\n" +
 					"  join permission_group pg\n" +
-					"    on pg.id = dpg.permission_group\n" +
+					"    on pg.id = pgg.permission_group\n" +
 					"  join permission p\n" +
 					"    on p.permission_group = pg.id\n" +
-					"  where cast(? as varchar(1024)) similar to dpg.database_pattern escape '\\' and\n" +
-					"  p.user_name in (?, 'PUBLIC')");
+					"  where cast(? as varchar(1024)) similar to pgg.database_pattern escape '\\' and\n" +
+					"        ((pgg.grantee_type = 'USER' and\n" +
+					"          cast(? as varchar(512)) similar to pgg.grantee_pattern escape '\\') or\n" +
+					"         (pgg.grantee_type = 'ROLE' and\n" +
+					"          cast(? as varchar(512)) similar to pgg.grantee_pattern escape '\\'))");
 			}
 		}
 	}
@@ -106,19 +112,41 @@ final class DbPolicy extends Policy
 		}
 	}
 
-	static synchronized Subject getUserSubject(String databaseName, String userName)
+	static synchronized Subject getUserSubject(IStatus status, IExternalContext context, DbClassLoader classLoader)
+		throws Exception
 	{
+		String databaseName = classLoader.databaseName;
+		String userName = context.getUserName();
+		String key = databaseName + "\0" + userName;
+
 		synchronized (userSubjects)
 		{
-			Subject subj = userSubjects.get(userName);
+			Subject subj = userSubjects.get(key);
 			if (subj != null)
 				return subj;
 
+			String roleName;
+
+			try (InternalContext internalContext = InternalContext.get(status, context))
+			{
+				try (Connection conn = internalContext.getConnection())
+				{
+					try (Statement stmt = conn.createStatement())
+					{
+						try (ResultSet rs = stmt.executeQuery("select current_role from rdb$database"))
+						{
+							rs.next();
+							roleName = rs.getString(1);
+						}
+					}
+				}
+			}
+
 			final HashSet<Principal> principals = new HashSet<Principal>();
-			principals.add(new DbPrincipal(databaseName, userName));
+			principals.add(new DbPrincipal(databaseName, roleName, userName));
 			subj = new Subject(true, principals, new HashSet<Object>(), new HashSet<Object>());
 
-			userSubjects.put(userName, subj);
+			userSubjects.put(key, subj);
 
 			return subj;
 		}
@@ -143,7 +171,11 @@ final class DbPolicy extends Policy
 				for (Principal principal : domain.getPrincipals())
 				{
 					if (principal instanceof DbPrincipal)
-						loadPermissions(((DbPrincipal) principal).getDatabaseName(), principal.getName(), permissions);
+					{
+						DbPrincipal dbPrincipal = (DbPrincipal) principal;
+						loadPermissions(dbPrincipal.getDatabaseName(), dbPrincipal.getRoleName(), dbPrincipal.getName(),
+							permissions);
+					}
 				}
 
 				return permissions;
@@ -168,7 +200,8 @@ final class DbPolicy extends Policy
 		});
 	}
 
-	private void loadPermissions(String databaseName, String userName, PermissionCollection permissions)
+	private void loadPermissions(String databaseName, String roleName, String userName,
+		PermissionCollection permissions)
 	{
 		//// TODO: cache
 		synchronized (stmt)
@@ -177,8 +210,9 @@ final class DbPolicy extends Policy
 			{
 				stmt.setString(1, databaseName);
 				stmt.setString(2, userName);
-				ResultSet rs = stmt.executeQuery();
-				try
+				stmt.setString(3, roleName);
+
+				try (ResultSet rs = stmt.executeQuery())
 				{
 					while (rs.next())
 					{
@@ -209,10 +243,6 @@ final class DbPolicy extends Policy
 						{
 						}
 					}
-				}
-				finally
-				{
-					rs.close();
 				}
 			}
 			catch (SQLException e)

@@ -112,9 +112,9 @@ final class Routine
 		}
 	}
 
-	Object run(IExternalContext context, Object[] args) throws Throwable
+	Object run(IStatus status, IExternalContext context, Object[] args) throws Throwable
 	{
-		return engine.runInClassLoader(context.getUserName(), method.getDeclaringClass().getName(), method.getName(),
+		return engine.runInClassLoader(status, context, method.getDeclaringClass().getName(), method.getName(),
 			() -> {
 				try
 				{

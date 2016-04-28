@@ -1152,7 +1152,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			String className = entryPoint.substring(0, methodStart - 1).trim();
 			String methodName = entryPoint.substring(methodStart, paramsStart).trim();
 
-			Class<?> clazz = runInClassLoader(context.getUserName(), className, methodName,
+			Class<?> clazz = runInClassLoader(status, context, className, methodName,
 				() -> Class.forName(className, true, sharedData.classLoader));
 
 			Routine routine = new Routine(this);
@@ -1379,15 +1379,15 @@ final class ExternalEngine implements IExternalEngineIntf
 		return s.charAt(pos[0]);
 	}
 
-	<T> T runInClassLoader(String userName, String className, String methodName, CallableThrowable<T> callable)
-		throws Throwable
+	<T> T runInClassLoader(IStatus status, IExternalContext context, String className, String methodName,
+		CallableThrowable<T> callable) throws Throwable
 	{
 		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
 		try
 		{
 			Thread.currentThread().setContextClassLoader(sharedData.classLoader);
 
-			Subject subj = DbPolicy.getUserSubject(sharedData.classLoader.databaseName, userName);
+			Subject subj = DbPolicy.getUserSubject(status, context, sharedData.classLoader);
 
 			ProtectionDomain[] protectionDomains = {new ProtectionDomain(sharedData.classLoader.codeSource,
 				sharedData.classLoader.codeSourcePermission, sharedData.classLoader,
