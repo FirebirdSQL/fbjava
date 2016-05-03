@@ -23,8 +23,6 @@ import org.firebirdsql.fbjava.CallableRoutineContext;
 
 abstract class CallableRoutineContextImpl extends ContextImpl implements CallableRoutineContext
 {
-	private InternalContext internalContext;
-
 	//// TODO: input/output parameters
 
 	public CallableRoutineContextImpl(InternalContext internalContext)

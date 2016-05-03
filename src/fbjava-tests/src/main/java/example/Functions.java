@@ -31,6 +31,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.firebirdsql.fbjava.Context;
+import org.firebirdsql.fbjava.FunctionContext;
 
 
 public class Functions
@@ -249,7 +250,7 @@ public class Functions
 
 	public static String f26()
 	{
-		Context context = Context.get();
+		FunctionContext context = FunctionContext.get();
 		return context.getPackageName() + "." + context.getObjectName() + "!" + context.getNameInfo();
 	}
 

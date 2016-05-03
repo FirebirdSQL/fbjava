@@ -26,7 +26,7 @@ import org.firebirdsql.fbjava.Context;
 
 abstract class ContextImpl implements Context
 {
-	private InternalContext internalContext;
+	InternalContext internalContext;
 
 	public ContextImpl(InternalContext internalContext)
 	{
