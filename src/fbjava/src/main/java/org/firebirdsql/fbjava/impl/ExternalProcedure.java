@@ -67,7 +67,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 	{
 		try
 		{
-			try (InternalContext internalContext = InternalContext.get(status, context))
+			try (InternalContext internalContext = InternalContext.create(status, context, routine))
 			{
 				int inCount = routine.inputParameters.size();
 				int outCount = routine.outputParameters.size();

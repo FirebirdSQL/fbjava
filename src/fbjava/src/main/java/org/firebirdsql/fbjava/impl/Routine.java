@@ -39,14 +39,23 @@ final class Routine
 		TRIGGER
 	}
 
-	ExternalEngine engine;
+	final Type type;
+	final ExternalEngine engine;
+	final String objectName;
+	final String packageName;
+	final String body;
+	String nameInfo;
 	Method method;
-	List<Parameter> inputParameters = new ArrayList<>();
-	List<Parameter> outputParameters = new ArrayList<>();
+	final List<Parameter> inputParameters = new ArrayList<>();
+	final List<Parameter> outputParameters = new ArrayList<>();
 
-	Routine(ExternalEngine engine)
+	Routine(Type type, ExternalEngine engine, String objectName, String packageName, String body)
 	{
+		this.type = type;
 		this.engine = engine;
+		this.objectName = objectName;
+		this.packageName = packageName;
+		this.body = body;
 	}
 
 	void setupParameters(IStatus status, List<Parameter> parameters, IMessageMetadata metadata,

@@ -1155,7 +1155,8 @@ final class ExternalEngine implements IExternalEngineIntf
 			Class<?> clazz = runInClassLoader(status, context, className, methodName,
 				() -> Class.forName(className, true, sharedData.classLoader));
 
-			Routine routine = new Routine(this);
+			Routine routine = new Routine(type, this, metadata.getName(status), metadata.getPackage(status),
+				metadata.getBody(status));
 			ArrayList<Class<?>> paramTypes = new ArrayList<>();
 
 			int[] pos = {paramsStart + 1};
@@ -1213,7 +1214,12 @@ final class ExternalEngine implements IExternalEngineIntf
 
 					skipBlanks(entryPoint, pos);
 
-					if (pos[0] != entryPoint.length())
+					if (pos[0] < entryPoint.length() && getChar(entryPoint, pos) == '!')
+					{
+						skipBlanks(entryPoint, pos);
+						routine.nameInfo = entryPoint.substring(pos[0]);
+					}
+					else if (pos[0] != entryPoint.length())
 						throw new FbException(invalidMethodSignatureMsg);
 
 					switch (type)

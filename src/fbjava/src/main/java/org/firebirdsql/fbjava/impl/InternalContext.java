@@ -28,6 +28,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.ITransaction;
 
 
+// This (non-public) class is accessed by org.firebirdsql.fbjava.Context by reflection.
 final class InternalContext implements AutoCloseable
 {
 	private static ThreadLocal<InternalContext> tls = new ThreadLocal<InternalContext>() {
@@ -39,24 +40,52 @@ final class InternalContext implements AutoCloseable
 	};
 	private IAttachment attachment;
 	private ITransaction transaction;
+	private Routine routine;
 	private Connection connection;
+	private ContextImpl contextImpl;
 
 	public static InternalContext get()
 	{
 		return tls.get();
 	}
 
-	public static InternalContext get(IStatus status, IExternalContext context) throws FbException
+	public static ContextImpl getContextImpl()
+	{
+		return get().contextImpl;
+	}
+
+	public static InternalContext create(IStatus status, IExternalContext context, Routine routine) throws FbException
 	{
 		InternalContext internalContext = get();
-		internalContext.setup(status, context);
+		internalContext.setup(status, context, routine);
 		return internalContext;
 	}
 
-	public void setup(IStatus status, IExternalContext context) throws FbException
+	private void setup(IStatus status, IExternalContext context, Routine routine) throws FbException
 	{
 		attachment = context.getAttachment(status);
 		transaction = context.getTransaction(status);
+		this.routine = routine;
+
+		if (routine == null)
+			contextImpl = null;
+		else
+		{
+			switch (routine.type)
+			{
+				case FUNCTION:
+					contextImpl = new FunctionContextImpl(this);
+					break;
+
+				case PROCEDURE:
+					contextImpl = new ProcedureContextImpl(this);
+					break;
+
+				case TRIGGER:
+					contextImpl = new TriggerContextImpl(this);
+					break;
+			}
+		}
 	}
 
 	public IAttachment getAttachment()
@@ -67,6 +96,11 @@ final class InternalContext implements AutoCloseable
 	public ITransaction getTransaction()
 	{
 		return transaction;
+	}
+
+	public Routine getRoutine()
+	{
+		return routine;
 	}
 
 	public Connection getConnection() throws SQLException
@@ -89,5 +123,8 @@ final class InternalContext implements AutoCloseable
 
 		attachment.release();
 		attachment = null;
+
+		routine = null;
+		contextImpl = null;
 	}
 }

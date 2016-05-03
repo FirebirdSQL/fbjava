@@ -18,15 +18,19 @@
  */
 package example;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import org.firebirdsql.fbjava.Context;
 
 
 public class Functions
@@ -224,5 +228,34 @@ public class Functions
 		{
 			return 0;
 		}
+	}
+
+	public static int f25() throws Exception
+	{
+		AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
+			@Override
+			public Void run() throws Exception
+			{
+				Class<?> clazz = Class.forName("org.firebirdsql.fbjava.impl.InternalContext");
+				Method method = clazz.getMethod("get");
+				method.setAccessible(true);
+				method.invoke(null);
+				return null;
+			}
+		});
+
+		return 0;
+	}
+
+	public static String f26()
+	{
+		Context context = Context.get();
+		return context.getPackageName() + "." + context.getObjectName() + "!" + context.getNameInfo();
+	}
+
+	public static String f27()
+	{
+		Context context = Context.get();
+		return context.getBody();
 	}
 }

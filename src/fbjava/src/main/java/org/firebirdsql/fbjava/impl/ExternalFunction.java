@@ -62,7 +62,7 @@ final class ExternalFunction implements IExternalFunctionIntf
 	{
 		try
 		{
-			try (InternalContext internalContext = InternalContext.get(status, context))
+			try (InternalContext internalContext = InternalContext.create(status, context, routine))
 			{
 				Object[] in = routine.getFromMessage(status, context, routine.inputParameters, inMsg);
 				Object[] out = {routine.run(status, context, in)};
