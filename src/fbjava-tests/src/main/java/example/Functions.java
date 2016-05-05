@@ -30,6 +30,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.firebirdsql.fbjava.CallableRoutineContext;
 import org.firebirdsql.fbjava.Context;
 import org.firebirdsql.fbjava.FunctionContext;
 
@@ -258,5 +259,11 @@ public class Functions
 	{
 		Context context = Context.get();
 		return context.getBody();
+	}
+
+	public static String f28(int i1, int i2)
+	{
+		CallableRoutineContext context = CallableRoutineContext.get();
+		return context.getInputMetadata().getCount() + ", " + context.getOutputMetadata().getCount();
 	}
 }

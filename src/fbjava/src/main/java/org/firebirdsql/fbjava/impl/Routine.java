@@ -25,6 +25,7 @@ import java.util.List;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IMessageMetadata;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IMetadataBuilder;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IRoutineMetadata;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 
 import com.sun.jna.Pointer;
@@ -48,18 +49,21 @@ final class Routine
 	Method method;
 	final List<Parameter> inputParameters = new ArrayList<>();
 	final List<Parameter> outputParameters = new ArrayList<>();
+	final ValuesMetadataImpl inputMetadata = new ValuesMetadataImpl();
+	final ValuesMetadataImpl outputMetadata = new ValuesMetadataImpl();
 
-	Routine(Type type, ExternalEngine engine, String objectName, String packageName, String body)
+	Routine(IStatus status, IRoutineMetadata metadata, ExternalEngine engine, Type type) throws FbException
 	{
-		this.type = type;
 		this.engine = engine;
-		this.objectName = objectName;
-		this.packageName = packageName;
-		this.body = body;
+		this.type = type;
+
+		objectName = metadata.getName(status);
+		packageName = metadata.getPackage(status);
+		body = metadata.getBody(status);
 	}
 
-	void setupParameters(IStatus status, List<Parameter> parameters, IMessageMetadata metadata,
-		IMetadataBuilder builder) throws FbException
+	void setupParameters(IStatus status, List<Parameter> parameters, ValuesMetadataImpl valuesMetadata,
+		IMessageMetadata metadata, IMetadataBuilder builder) throws FbException
 	{
 		for (int i = 0; i < parameters.size(); ++i)
 		{
@@ -78,6 +82,8 @@ final class Routine
 				parameter.offset = builtMetadata.getOffset(status, i);
 				parameter.length = builtMetadata.getLength(status, i);
 			}
+
+			valuesMetadata.setup(parameters);
 		}
 		finally
 		{

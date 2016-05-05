@@ -18,34 +18,41 @@
  */
 package org.firebirdsql.fbjava.impl;
 
-import org.firebirdsql.fbjava.CallableRoutineContext;
+import java.util.List;
+
 import org.firebirdsql.fbjava.ValuesMetadata;
 
 
-abstract class CallableRoutineContextImpl extends ContextImpl implements CallableRoutineContext
+final class ValuesMetadataImpl implements ValuesMetadata
 {
-	//// TODO: input/output parameters
+	private List<Parameter> parameters;
+	private int count;
 
-	public CallableRoutineContextImpl(InternalContext internalContext)
+	void setup(List<Parameter> parameters)
 	{
-		super(internalContext);
+		this.parameters = parameters;
+		count = parameters.size();
 	}
 
 	@Override
-	public String getPackageName()
+	public int getCount()
 	{
-		return internalContext.getRoutine().packageName;
+		return count;
 	}
 
 	@Override
-	public ValuesMetadata getInputMetadata()
+	public Class<?> getJavaClass(int index)
 	{
-		return internalContext.getRoutine().inputMetadata;
+		checkIndex(index);
+		return parameters.get(index).javaClass;
 	}
 
-	@Override
-	public ValuesMetadata getOutputMetadata()
+	private void checkIndex(int index)
 	{
-		return internalContext.getRoutine().outputMetadata;
+		if (index < 0 || index >= count)
+		{
+			throw new IndexOutOfBoundsException(
+				String.format("ValuesMetadata index out of bounds: Index: %d, Size: %d", index, count));
+		}
 	}
 }

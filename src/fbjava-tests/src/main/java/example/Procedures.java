@@ -18,7 +18,9 @@
  */
 package example;
 
+import org.firebirdsql.fbjava.CallableRoutineContext;
 import org.firebirdsql.fbjava.ExternalResultSet;
+import org.firebirdsql.fbjava.ValuesMetadata;
 
 
 public class Procedures
@@ -116,5 +118,21 @@ public class Procedures
 			{
 			}
 		};
+	}
+
+	public static void p8(int i1, int i2, String[] o1, int[] o2, int[] o3)
+	{
+		CallableRoutineContext context = CallableRoutineContext.get();
+		o1[0] = context.getInputMetadata().getCount() + ", " + context.getOutputMetadata().getCount();
+	}
+
+	public static void p9(int i1, Integer i2, String[] o1)
+	{
+		CallableRoutineContext context = CallableRoutineContext.get();
+		ValuesMetadata input = context.getInputMetadata();
+		ValuesMetadata output = context.getOutputMetadata();
+
+		o1[0] = input.getJavaClass(0).toString() + ", " + input.getJavaClass(1).toString() + ", " +
+			output.getJavaClass(0).toString();
 	}
 }

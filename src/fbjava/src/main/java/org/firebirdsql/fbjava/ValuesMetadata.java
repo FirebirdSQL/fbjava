@@ -20,34 +20,21 @@ package org.firebirdsql.fbjava;
 
 
 /**
- * This interface represents a Firebird Function or Procedure Context.
+ * This interface represents a Firebird Values (set of input/output parameters or trigger's old/new fields) metadata.
  *
  * @author <a href="mailto:adrianosf@gmail.com">Adriano dos Santos Fernandes</a>
  */
-public interface CallableRoutineContext extends Context
+public interface ValuesMetadata
 {
 	/**
-	 * Gets the Context instance associated with the current call.
+	 * Gets the number of values.
 	 */
-	public static CallableRoutineContext get()
-	{
-		return (CallableRoutineContext) Context.get();
-	}
+	public int getCount();
 
 	/**
-	 * Gets the metadata package name that called the external routine.
-	 * For unpackaged routines, return null.
+	 * Gets the Java Class for a given value index.
 	 */
-	public String getPackageName();
+	public Class<?> getJavaClass(int index);
 
-	/**
-	 * Gets the input values metadata.
-	 */
-	public ValuesMetadata getInputMetadata();
-
-	/**
-	 * Gets the output values metadata.
-	 * For functions, it always returns a ValuesMetadata with a single entry.
-	 */
-	public ValuesMetadata getOutputMetadata();
+	//// TODO: more methods
 }

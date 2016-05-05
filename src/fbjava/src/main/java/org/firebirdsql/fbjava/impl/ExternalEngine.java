@@ -1155,8 +1155,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			Class<?> clazz = runInClassLoader(status, context, className, methodName,
 				() -> Class.forName(className, true, sharedData.classLoader));
 
-			Routine routine = new Routine(type, this, metadata.getName(status), metadata.getPackage(status),
-				metadata.getBody(status));
+			Routine routine = new Routine(status, metadata, this, type);
 			ArrayList<Class<?>> paramTypes = new ArrayList<>();
 
 			int[] pos = {paramsStart + 1};
@@ -1279,8 +1278,11 @@ final class ExternalEngine implements IExternalEngineIntf
 							break;
 					}
 
-					routine.setupParameters(status, routine.inputParameters, inMetadata, inBuilder);
-					routine.setupParameters(status, routine.outputParameters, outMetadata, outBuilder);
+					routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
+						inMetadata, inBuilder);
+
+					routine.setupParameters(status, routine.outputParameters, routine.outputMetadata,
+						outMetadata, outBuilder);
 				}
 				finally
 				{
