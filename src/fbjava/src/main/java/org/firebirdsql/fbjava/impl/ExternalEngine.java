@@ -36,11 +36,13 @@ import java.security.ProtectionDomain;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.Time;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -75,7 +77,7 @@ final class ExternalEngine implements IExternalEngineIntf
 {
 	private static final IEncodingFactory encodingFactory = EncodingFactory.getPlatformDefault();
 	private static Map<String, SharedData> sharedDataMap = new ConcurrentHashMap<>();
-	private static Map<Integer, String> fbTypeNames;
+	private static Map<Integer, Pair<String, Integer>> fbTypeNames;
 	private static Map<Class<?>, DataType> dataTypesByClass;
 	private static Map<String, Class<?>> javaClassesByName;
 	private static Map<Integer, DataType> defaultDataTypes;
@@ -137,22 +139,22 @@ final class ExternalEngine implements IExternalEngineIntf
 	static
 	{
 		fbTypeNames = new HashMap<>();
-		fbTypeNames.put(ISCConstants.SQL_TEXT, "CHAR");
-		fbTypeNames.put(ISCConstants.SQL_VARYING, "VARCHAR");
-		fbTypeNames.put(ISCConstants.SQL_SHORT, "SMALLINT");
-		fbTypeNames.put(ISCConstants.SQL_LONG, "INTEGER");
-		fbTypeNames.put(ISCConstants.SQL_FLOAT, "FLOAT");
-		fbTypeNames.put(ISCConstants.SQL_DOUBLE, "DOUBLE PRECISION");
-		fbTypeNames.put(ISCConstants.SQL_D_FLOAT, "FLOAT");
-		fbTypeNames.put(ISCConstants.SQL_TIMESTAMP, "TIMESTAMP");
-		fbTypeNames.put(ISCConstants.SQL_BLOB, "BLOB");
-		fbTypeNames.put(ISCConstants.SQL_ARRAY, "ARRAY");
-		fbTypeNames.put(ISCConstants.SQL_QUAD, "QUAD");
-		fbTypeNames.put(ISCConstants.SQL_TYPE_TIME, "TIME");
-		fbTypeNames.put(ISCConstants.SQL_TYPE_DATE, "DATE");
-		fbTypeNames.put(ISCConstants.SQL_INT64, "BIGINT");
-		fbTypeNames.put(ISCConstants.SQL_BOOLEAN, "BOOLEAN");
-		fbTypeNames.put(ISCConstants.SQL_NULL, "NULL");
+		fbTypeNames.put(ISCConstants.SQL_TEXT, Pair.of("CHAR", Types.CHAR));
+		fbTypeNames.put(ISCConstants.SQL_VARYING, Pair.of("VARCHAR", Types.VARCHAR));
+		fbTypeNames.put(ISCConstants.SQL_SHORT, Pair.of("SMALLINT", Types.SMALLINT));
+		fbTypeNames.put(ISCConstants.SQL_LONG, Pair.of("INTEGER", Types.INTEGER));
+		fbTypeNames.put(ISCConstants.SQL_FLOAT, Pair.of("FLOAT", Types.FLOAT));
+		fbTypeNames.put(ISCConstants.SQL_DOUBLE, Pair.of("DOUBLE PRECISION", Types.DOUBLE));
+		fbTypeNames.put(ISCConstants.SQL_D_FLOAT, Pair.of("FLOAT", Types.FLOAT));
+		fbTypeNames.put(ISCConstants.SQL_TIMESTAMP, Pair.of("TIMESTAMP", Types.TIMESTAMP));
+		fbTypeNames.put(ISCConstants.SQL_BLOB, Pair.of("BLOB", Types.BLOB));
+		fbTypeNames.put(ISCConstants.SQL_ARRAY, Pair.of("ARRAY", Types.ARRAY));
+		fbTypeNames.put(ISCConstants.SQL_QUAD, Pair.of("QUAD", -1));
+		fbTypeNames.put(ISCConstants.SQL_TYPE_TIME, Pair.of("TIME", Types.TIME));
+		fbTypeNames.put(ISCConstants.SQL_TYPE_DATE, Pair.of("DATE", Types.DATE));
+		fbTypeNames.put(ISCConstants.SQL_INT64, Pair.of("BIGINT", Types.BIGINT));
+		fbTypeNames.put(ISCConstants.SQL_BOOLEAN, Pair.of("BOOLEAN", Types.BOOLEAN));
+		fbTypeNames.put(ISCConstants.SQL_NULL, Pair.of("NULL", Types.NULL));
 
 		dataTypesByClass = new HashMap<>();
 		javaClassesByName = new HashMap<>();
@@ -228,9 +230,9 @@ final class ExternalEngine implements IExternalEngineIntf
 
 					default:
 					{
-						String typeName = fbTypeNames.get(type);
-						if (typeName == null)
-							typeName = String.valueOf(type);
+						String typeName = Optional.of(fbTypeNames.get(type))
+							.map(Pair::getFirst)
+							.orElse(String.valueOf(type));
 
 						throw new FbException(
 							String.format("Cannot use Java String type for the Firebird type '%s'.", typeName));
@@ -297,9 +299,9 @@ final class ExternalEngine implements IExternalEngineIntf
 
 					default:
 					{
-						String typeName = fbTypeNames.get(type);
-						if (typeName == null)
-							typeName = String.valueOf(type);
+						String typeName = Optional.of(fbTypeNames.get(type))
+							.map(Pair::getFirst)
+							.orElse(String.valueOf(type));
 
 						throw new FbException(
 							String.format("Cannot use Java byte[] type for the Firebird type '%s'.", typeName));
@@ -419,9 +421,9 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				if (type != ISCConstants.SQL_BLOB)
 				{
-					String typeName = fbTypeNames.get(type);
-					if (typeName == null)
-						typeName = String.valueOf(type);
+					String typeName = Optional.of(fbTypeNames.get(type))
+						.map(Pair::getFirst)
+						.orElse(String.valueOf(type));
 
 					throw new FbException(
 						String.format("Cannot use Java java.sql.Blob type for the Firebird type '%s'.", typeName));
@@ -938,9 +940,9 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				if (defaultType == null)
 				{
-					String typeName = fbTypeNames.get(type);
-					if (typeName == null)
-						typeName = String.valueOf(type);
+					String typeName = Optional.of(fbTypeNames.get(type))
+						.map(Pair::getFirst)
+						.orElse(String.valueOf(type));
 
 					throw new FbException(
 						String.format("Cannot use Java Object type for the Firebird type '%s'.", typeName));
@@ -1185,10 +1187,24 @@ final class ExternalEngine implements IExternalEngineIntf
 							boolean isOutput = n > inCount && n <= inCount + outCount;
 							Parameter parameter = getDataType(entryPoint, pos, isOutput);
 
+							IMessageMetadata inOutMetadata;
+							int index;
+
 							if (isOutput)
+							{
 								routine.outputParameters.add(parameter);
+								inOutMetadata = outMetadata;
+								index = n - 1 - inCount;
+							}
 							else
+							{
 								routine.inputParameters.add(parameter);
+								inOutMetadata = inMetadata;
+								index = n - 1;
+							}
+
+							parameter.name = inOutMetadata.getField(status, index);
+							parameter.type = fbTypeNames.get(inOutMetadata.getType(status, index));
 
 							paramTypes.add(parameter.javaClass);
 
@@ -1224,6 +1240,7 @@ final class ExternalEngine implements IExternalEngineIntf
 					switch (type)
 					{
 						case FUNCTION:
+						{
 							assert outCount == 1;
 
 							if (paramTypes.size() != inCount)
@@ -1243,8 +1260,12 @@ final class ExternalEngine implements IExternalEngineIntf
 									routine.method.getReturnType().getName()));
 							}
 
-							routine.outputParameters.add(new Parameter(returnType, routine.method.getReturnType()));
+							Parameter parameter = new Parameter(returnType, routine.method.getReturnType());
+							parameter.type = fbTypeNames.get(outMetadata.getType(status, 0));
+
+							routine.outputParameters.add(parameter);
 							break;
+						}
 
 						case PROCEDURE:
 							if (paramTypes.size() != inCount + outCount)

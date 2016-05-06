@@ -32,9 +32,21 @@ public interface ValuesMetadata
 	public int getCount();
 
 	/**
+	 * Gets the name for a given value index.
+	 * Returns null in function output metadata.
+	 */
+	public String getName(int index);
+
+	/**
 	 * Gets the Java Class for a given value index.
 	 */
 	public Class<?> getJavaClass(int index);
+
+	/**
+	 * Gets the Java SQL type (java.sql.Types.*) for a given value index.
+	 * It returns the raw type (i.e. not NUMERIC or DECIMAL, but INTERGER, SMALLINT, etc).
+	 */
+	public int getSqlType(int index);
 
 	//// TODO: more methods
 }

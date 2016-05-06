@@ -132,7 +132,8 @@ public class Procedures
 		ValuesMetadata input = context.getInputMetadata();
 		ValuesMetadata output = context.getOutputMetadata();
 
-		o1[0] = input.getJavaClass(0).toString() + ", " + input.getJavaClass(1).toString() + ", " +
-			output.getJavaClass(0).toString();
+		o1[0] = input.getName(0) + ": " + input.getJavaClass(0).toString() + " (" + input.getSqlType(0) + "), " +
+			input.getName(1) + ": " + input.getJavaClass(1).toString() + " (" + input.getSqlType(1) + "), " +
+			output.getName(0) + ": " + output.getJavaClass(0).toString() + " (" + output.getSqlType(0) + ")";
 	}
 }

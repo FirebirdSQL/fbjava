@@ -33,6 +33,7 @@ import java.sql.Statement;
 import org.firebirdsql.fbjava.CallableRoutineContext;
 import org.firebirdsql.fbjava.Context;
 import org.firebirdsql.fbjava.FunctionContext;
+import org.firebirdsql.fbjava.ValuesMetadata;
 
 
 public class Functions
@@ -265,5 +266,16 @@ public class Functions
 	{
 		CallableRoutineContext context = CallableRoutineContext.get();
 		return context.getInputMetadata().getCount() + ", " + context.getOutputMetadata().getCount();
+	}
+
+	public static String f29(int i1, int i2)
+	{
+		CallableRoutineContext context = CallableRoutineContext.get();
+		ValuesMetadata input = context.getInputMetadata();
+		ValuesMetadata output = context.getOutputMetadata();
+
+		return input.getName(0) + ": " + input.getJavaClass(0).toString() + " (" + input.getSqlType(0) + "), " +
+			input.getName(1) + ": " + input.getJavaClass(1).toString() + " (" + input.getSqlType(1) + "), " +
+			output.getName(0) + ": " + output.getJavaClass(0).toString() + " (" + output.getSqlType(0) + "), ";
 	}
 }

@@ -19,21 +19,29 @@
 package org.firebirdsql.fbjava.impl;
 
 
-final class Parameter
+public class Pair<T1, T2>
 {
-	Parameter(DataType dataType, Class<?> javaClass)
+	private T1 first;
+	private T2 second;
+
+	public Pair(T1 first, T2 second)
 	{
-		this.dataType = dataType;
-		this.javaClass = javaClass;
-		this.type = type;
+		this.first = first;
+		this.second = second;
 	}
 
-	DataType dataType;
-	Class<?> javaClass;
-	DataType.Conversion conversion;
-	String name;
-	Pair<String, Integer> type;	// Pair of String, java.sql.Types.*
-	int nullOffset;
-	int offset;
-	int length;
+	public static <T1, T2> Pair<T1, T2> of(T1 first, T2 second)
+	{
+		return new Pair<T1, T2>(first, second);
+	}
+
+	public T1 getFirst()
+	{
+		return first;
+	}
+
+	public T2 getSecond()
+	{
+		return second;
+	}
 }

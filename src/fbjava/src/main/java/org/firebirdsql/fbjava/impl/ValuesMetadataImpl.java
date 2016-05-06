@@ -41,10 +41,24 @@ final class ValuesMetadataImpl implements ValuesMetadata
 	}
 
 	@Override
+	public String getName(int index)
+	{
+		checkIndex(index);
+		return parameters.get(index).name;
+	}
+
+	@Override
 	public Class<?> getJavaClass(int index)
 	{
 		checkIndex(index);
 		return parameters.get(index).javaClass;
+	}
+
+	@Override
+	public int getSqlType(int index)
+	{
+		checkIndex(index);
+		return parameters.get(index).type.getSecond();
 	}
 
 	private void checkIndex(int index)
