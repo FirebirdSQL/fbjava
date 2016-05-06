@@ -1,0 +1,671 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- For standalone validation, uncomment the following DOCTYPE declaration. -->
+<!--
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+"http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+-->
+<article id="fbjava">
+  <articleinfo>
+    <title>FB/Java External Engine Plugin</title>
+
+    <subtitle>Documentation for FB/Java External Engine Plugin</subtitle>
+
+    <author>
+      <firstname>Adriano</firstname>
+      <surname>dos Santos Fernandes</surname>
+    </author>
+
+    <edition>3 March 2016 – Document version 1.0.1</edition>
+  </articleinfo>
+
+  <section id="fbjava-whatisit">
+    <title>What is the FB/Java External Engine Plugin?</title>
+
+    <para>The FB/Java External Engine is a plugin for Firebird that make it capable of run
+    functions, stored procedures and triggers made in the Java platform.</para>
+
+    <para>It extends Jaybird making it interface with Firebird engine and handling the
+    infrastructure necessary to support user routines. It also has a client utility with functions
+    to install and uninstall the plugin in a database and that users may use to deploy and
+    undeploy Java classes and resources stored in JAR files to a database.</para>
+  </section>
+
+  <section id="fbjava-features">
+    <title>Features</title>
+
+    <para>FB/Java features a number of important things:</para>
+
+    <section id="fbjava-mappings">
+      <title>Database and Java routines mappings</title>
+
+      <para>There are basically two ways to map database functions and procedures to Java
+      methods. By fixed or generic signatures. Triggers can be mapped only with generic signatures.
+      </para>
+
+      <note>
+        <para>Generics here does not refer to Java 5 generics in any way.</para>
+      </note>
+
+      <itemizedlist spacing="normal">
+        <listitem>
+          <para>Fixed signatures</para>
+
+          <para>Fixed signatures means that for each database routine parameter there should be a
+          Java parameter in the method.</para>
+        </listitem>
+
+        <listitem>
+          <para>Generic signatures</para>
+
+          <para>Generic signatures have only one parameter, the Context. With the Context, one can
+          consult all parameters or fields values passed by the database routine.</para>
+        </listitem>
+      </itemizedlist>
+    </section>
+
+    <section id="fbjava-security">
+      <title>Security</title>
+
+      <para>One of the more important features of the Java platform is it security system, the so
+      called sandbox. FB/Java integrates the J2SE/JAAS security mechanism with Firebird so that
+      permissions may be assigned to database users running the Java code.</para>
+
+      <para>Users permissions works at server level. They are stored in the java-security.fdb database.
+      That database contains a table PERMISSION with following columns: USER_NAME, CLASS_NAME, ARG1
+      and ARG2. USER_NAME is the user name that have the permission and it may have the value PUBLIC
+      so that the permission is granted to all users. CLASS_NAME is the Java permission class name
+      that will be granted. ARG1 and ARG2 are the arguments passed to the permission class
+      constructor. The plugin ships with a number of permissions granted. They are:</para>
+
+      <table>
+        <title>Default permissions granted</title>
+
+        <tgroup cols="4">
+          <colspec colname="userName" colnum="1" colwidth="2*" />
+          <colspec colname="colClass" colnum="2" colwidth="2.8*" />
+          <colspec colname="colArg1" colnum="3" colwidth="2*" />
+          <colspec colname="colArg2" colnum="4" colwidth="2*" />
+
+          <thead>
+            <row>
+              <entry align="center">USER_NAME</entry>
+              <entry align="center">CLASS_NAME</entry>
+              <entry align="center">ARG1</entry>
+              <entry align="center">ARG2</entry>
+            </row>
+          </thead>
+
+          <tbody>
+            <row>
+              <entry>SYSDBA</entry>
+              <entry>java.security.AllPermission</entry>
+              <entry></entry>
+              <entry></entry>
+            </row>
+
+            <row>
+              <entry>PUBLIC</entry>
+              <entry>java.util.PropertyPermission</entry>
+              <entry>file.separator</entry>
+              <entry>read</entry>
+            </row>
+
+            <row>
+              <entry>PUBLIC</entry>
+              <entry>java.util.PropertyPermission</entry>
+              <entry>java.version</entry>
+              <entry>read</entry>
+            </row>
+
+            <row>
+              <entry>PUBLIC</entry>
+              <entry>java.util.PropertyPermission</entry>
+              <entry>java.vendor</entry>
+              <entry>read</entry>
+            </row>
+
+            <row>
+              <entry>PUBLIC</entry>
+              <entry>java.util.PropertyPermission</entry>
+              <entry>java.vendor.url</entry>
+              <entry>read</entry>
+            </row>
+
+            <row>
+              <entry>PUBLIC</entry>
+              <entry>java.util.PropertyPermission</entry>
+              <entry>line.separator</entry>
+              <entry>read</entry>
+            </row>
+
+            <row>
+              <entry>PUBLIC</entry>
+              <entry>java.util.PropertyPermission</entry>
+              <entry>os.*</entry>
+              <entry>read</entry>
+            </row>
+
+            <row>
+              <entry>PUBLIC</entry>
+              <entry>java.util.PropertyPermission</entry>
+              <entry>path.separator</entry>
+              <entry>read</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+
+      <warning>
+        <para>Permissions configured in java-security.fdb are valid only for classes stored
+        inside the database. Classes at file system are granted java.security.AllPermission.</para>
+      </warning>
+
+      <warning>
+        <para>Although SYSDBA can have his grants removed, he always can connect to
+        java-security.fdb and grant the permissions for himself.</para>
+      </warning>
+    </section>
+
+    <section id="fbjava-classloaders">
+      <title>ClassLoaders</title>
+
+      <para>FB/Java looks for classes in two different places: the file system and the current
+      database, in this order. It is general recommendation that users store they classes in the
+      database.</para>
+
+      <para>Classes in the file system are shared between all databases handled by a Firebird process.
+      For example, static variables have per-process values. In an analogy with an application server,
+      they are the system classes.</para>
+
+      <para>Classes in the database are isolated per-database (and process) and unloaded when the last
+      user disconnects from the database/process. So static variables are shared between attachments
+      to the same database, but are reinitialized when a closed database is opened. In an analogy with
+      an application server, they are the application classes, although an application server does
+      not reload application classes when the application is idle.</para>
+
+      <note>
+        <para>Classes are unloaded by closing the database classloader. It is subject to
+        garbage collection really unload them.</para>
+      </note>
+
+      <para>Classes can be stored in the database by two different methods: the fbjava-deployer
+      utility or the SQLJ package.</para>
+    </section>
+  </section>
+
+  <section id="fbjava-deployer">
+    <title>The deployer utility</title>
+
+    <para>FB/Java allows execution of Java routines stored in the file system without any
+    per-database installation. But to have per-database classes, it need to be installed on the
+    database.</para>
+
+    <para>fbjava-deployer is the utility to install and uninstall the plugin in databases and to
+    install, uninstall and replace JAR files in databases. Its command line options are:</para>
+
+    <itemizedlist spacing="normal">
+      <listitem>
+        <para><userinput>--database &lt;connection string&gt;</userinput></para>
+
+        <para>Jaybird connection string, without jdbc: prefix.</para>
+      </listitem>
+
+      <listitem>
+        <para><userinput>--user &lt;user name&gt;</userinput></para>
+
+        <para>Database user name.</para>
+      </listitem>
+
+      <listitem>
+        <para><userinput>--password &lt;password&gt;</userinput></para>
+
+        <para>User password.</para>
+      </listitem>
+
+      <listitem>
+        <para><userinput>--install-plugin</userinput></para>
+
+        <para>Installs the plugin in the database. The installation process consists of the
+        creation of some database objects, prefixed with FB$JAVA$ and the SQLJ package.</para>
+
+        <note>
+          <para>Details of the install process can be seen in the install.sql file in the scripts
+          directory of the plugin.</para>
+        </note>
+      </listitem>
+
+      <listitem>
+        <para><userinput>--uninstall-plugin</userinput></para>
+
+        <para>Uninstalls the plugin from the database. The uninstall process consists of dropping
+        all the objects created by the installation process.</para>
+
+        <note>
+          <para>Details of the uninstall process can be seen in the uninstall.sql file in the scripts
+          directory of the plugin.</para>
+        </note>
+
+        <warning>
+          <para>All stored JARs are deleted when the plugin is uninstalled.</para>
+        </warning>
+      </listitem>
+
+      <listitem>
+        <para><userinput>--install-jar &lt;URL or filename&gt; &lt;name&gt;</userinput></para>
+
+        <para>Installs a JAR in the database. <userinput>&lt;name&gt;</userinput> is an unique
+        identifier to refer to the JAR in subsequent calls, like <userinput>--replace-jar</userinput>
+        or <userinput>--remove-jar</userinput>.</para>
+      </listitem>
+
+      <listitem>
+        <para><userinput>--replace-jar &lt;URL or filename&gt; &lt;name&gt;</userinput></para>
+
+        <para>Replaces a JAR in the database. The replacement is done deleting the current JAR and
+        installing the new one. It is an error to try to replace a JAR with a
+        <userinput>&lt;name&gt;</userinput> that is not installed.</para>
+      </listitem>
+
+      <listitem>
+        <para><userinput>--uninstall-jar &lt;name&gt;</userinput></para>
+
+        <para>Uninstalls a JAR from the database.</para>
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section id="fbjava-sqlj">
+    <title>SQLJ package</title>
+
+    <para>JAR installation, replacement and uninstallation can also be done with the help of the
+    SQLJ package. The SQLJ package just runs the same class used in fbjava-deployer, but in the
+    server, as Java stored procedures. With that package, paths and URLs are server-based. Its
+    procedures are:</para>
+
+    <itemizedlist spacing="normal">
+      <listitem>
+        <para><userinput>SQLJ.INSTALL_JAR(&lt;URL or filename&gt;, &lt;name&gt;)</userinput></para>
+      </listitem>
+
+      <listitem>
+        <para><userinput>SQLJ.REPLACE_JAR(&lt;URL or filename&gt;, &lt;name&gt;)</userinput></para>
+      </listitem>
+
+      <listitem>
+        <para><userinput>SQLJ.UNINSTALL_JAR(&lt;name&gt;)</userinput></para>
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section id="fbjava-mapping">
+    <title>Mapping database routines to Java methods</title>
+
+    <para>Database routines are mapped to Java methods by a database declaration with an external call
+    specification and usage of ENGINE JAVA clause. The call specification consists of the method
+    signature, in this format:</para>
+
+    <programlisting>&lt;call specification&gt; ::=
+  &lt;fully qualified class name&gt;.&lt;method name&gt;(
+      [&lt;type&gt; [{, &lt;type&gt;}...]])
+
+&lt;type&gt; ::=
+  &lt;primitive type&gt; |
+  &lt;fully qualified class name&gt;</programlisting>
+
+    <note>
+      <para>As usual in the Java language, the java.lang package prefix may be avoided.</para>
+    </note>
+
+    <table>
+      <title>Supported Java types</title>
+
+      <tgroup cols="3">
+        <colspec colname="java-type" colnum="1" colwidth="1.5*" />
+        <colspec colname="fb-type" colnum="2" colwidth="1.5*" />
+        <colspec colname="notes" colnum="3" colwidth="0.5*" />
+
+        <thead>
+          <row>
+            <entry align="center">Java type</entry>
+            <entry align="center">Compatible Firebird type</entry>
+            <entry align="center">Notes</entry>
+          </row>
+        </thead>
+
+        <tbody>
+          <row>
+            <entry>byte[]</entry>
+            <entry>BLOB, CHAR, VARCHAR</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>boolean</entry>
+            <entry>any</entry>
+            <entry>[1]</entry>	<!-- FIXME: Converted to 0 ??? -->
+          </row>
+
+          <row>
+            <entry>short</entry>
+            <entry>any</entry>
+            <entry>[1]</entry>
+          </row>
+
+          <row>
+            <entry>int</entry>
+            <entry>any</entry>
+            <entry>[1]</entry>
+          </row>
+
+          <row>
+            <entry>long</entry>
+            <entry>any</entry>
+            <entry>[1]</entry>
+          </row>
+
+          <row>
+            <entry>float</entry>
+            <entry>any</entry>
+            <entry>[1]</entry>
+          </row>
+
+          <row>
+            <entry>double</entry>
+            <entry>any</entry>
+            <entry>[1]</entry>
+          </row>
+
+          <row>
+            <entry>java.lang.Boolean</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.lang.Short</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.lang.Integer</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.lang.Long</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.lang.Float</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.lang.Double</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.lang.Object</entry>
+            <entry>any</entry>
+            <entry>
+              <para>[2]</para>
+            </entry>
+          </row>
+
+          <row>
+            <entry>java.lang.String</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.math.BigDecimal</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.sql.Blob</entry>
+            <entry>BLOB</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.sql.Date</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.sql.Time</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.sql.Timestamp</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>java.util.Date</entry>
+            <entry>any</entry>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry>org.firebirdsql.fbjava.TriggerContext</entry>
+            <entry>-</entry>
+            <entry>
+              <para>[3]</para>
+            </entry>
+          </row>
+
+          <row>
+            <entry>org.firebirdsql.fbjava.ProcedureContext</entry>
+            <entry>-</entry>
+            <entry>
+              <para>[4]</para>
+            </entry>
+          </row>
+
+          <row>
+            <entry>org.firebirdsql.fbjava.FunctionContext</entry>
+            <entry>-</entry>
+            <entry>
+              <para>[5]</para>
+            </entry>
+          </row>
+
+          <row>
+            <entry>org.firebirdsql.fbjava.ExternalResultSet</entry>
+            <entry>-</entry>
+            <entry>
+              <para>[6]</para>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+
+    <note>
+      <para>[1] A database NULL is converted to 0 (zero) when passed to a primitive numeric type.
+      and false to boolean.
+      </para>
+      <para>[2] Parameters and trigger values are converted accordingly to default mapping rules.</para>
+      <para>[3] Could only be used as single parameter for triggers.</para>
+      <para>[4] Could only be used as single parameter for procedures.</para>
+      <para>[5] Could only be used as single parameter for functions.</para>
+      <para>[6] Could only be used as method's return type for procedures. Alternatively,
+      a class implementing this interface could be used.</para>
+    </note>
+
+    <note>
+      <para>Any compatible type means the plugin doesn't care about the type, it just tries to get
+      the value as a Firebird type compatible with the Java type. Basically, this means that a CAST
+      will be done from the Firebird value to the default mapping type of the Java type, or
+      vice-versa.</para>
+    </note>
+
+    <table>
+      <title>Default mappings</title>
+
+      <tgroup cols="2">
+        <colspec colname="fb-type" colnum="1" colwidth="2*" />
+        <colspec colname="java-type" colnum="2" colwidth="2*" />
+
+        <thead>
+          <row>
+            <entry align="center">Firebird type</entry>
+            <entry align="center">Java type</entry>
+          </row>
+        </thead>
+
+        <tbody>
+          <row>
+            <entry>NUMERIC</entry>
+            <entry>java.math.BigDecimal</entry>
+          </row>
+
+          <row>
+            <entry>DECIMAL</entry>
+            <entry>java.math.BigDecimal</entry>
+          </row>
+
+          <row>
+            <entry>SMALLINT</entry>
+            <entry>java.math.BigDecimal</entry>
+          </row>
+
+          <row>
+            <entry>INTEGER</entry>
+            <entry>java.math.BigDecimal</entry>
+          </row>
+
+          <row>
+            <entry>BIGINT</entry>
+            <entry>java.math.BigDecimal</entry>
+          </row>
+
+          <row>
+            <entry>FLOAT</entry>
+            <entry>java.lang.Float</entry>
+          </row>
+
+          <row>
+            <entry>DOUBLE PRECISION</entry>
+            <entry>java.lang.Double</entry>
+          </row>
+
+          <row>
+            <entry>BOOLEAN</entry>
+            <entry>java.lang.Boolean</entry>
+          </row>
+
+          <row>
+            <entry>CHAR</entry>
+            <entry>java.lang.String</entry>
+          </row>
+
+          <row>
+            <entry>VARCHAR</entry>
+            <entry>java.lang.String</entry>
+          </row>
+
+          <row>
+            <entry>BLOB</entry>
+            <entry>java.sql.Blob</entry>
+          </row>
+
+          <row>
+            <entry>DATE</entry>
+            <entry>java.sql.Date</entry>
+          </row>
+
+          <row>
+            <entry>TIME</entry>
+            <entry>java.sql.Time</entry>
+          </row>
+
+          <row>
+            <entry>TIMESTAMP</entry>
+            <entry>java.sql.Timestamp</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+
+    <section id="fbjava-mapping-functions">
+      <title>Functions mapping</title>
+
+      <para>Functions are the only routine type that always requires a non-void return type in the
+      Java method.</para>
+      <para>Examples:</para>
+
+      <programlisting>create or alter function get_system_property (
+  name varchar(60)
+) returns varchar(60)
+  external name 'java.lang.System.getProperty(java.lang.String)'
+  engine java;</programlisting>
+
+      <programlisting>-- A single method being mapped to two different Firebird functions.
+
+create function funcSum2 (n1 integer, n2 integer)
+    returns integer
+  external name 'org.firebirdsql.fbjava.FuncTest.sum(
+      org.firebirdsql.fbjava.FunctionContext)'
+  engine java;
+
+create function funcSum4 (n1 integer, n2 integer, n3 integer, n4 integer)
+    returns integer
+  external name 'org.firebirdsql.fbjava.FuncTest.sum(
+      org.firebirdsql.fbjava.FunctionContext)'
+  engine java;</programlisting>
+    </section>
+
+    <section id="fbjava-mapping-procedures">
+      <title>Procedures mapping</title>
+
+      <para>Procedures can have a return type (of org.firebirdsql.fbjava.ExternalResultSet type or a
+      subclass) or void, depending of it being a selectable procedure or not. Output parameters should
+      appear on the call specification as arrays. FB/Java pass each output parameter as an array of
+      length 1, and routines can change their [0] element.</para>
+
+      <para>Examples:</para>
+
+      <programlisting>-- Executable procedure.
+create procedure procInsert (n integer, s varchar(10))
+  external name 'org.firebirdsql.fbjava.ProcTest.insert(int, java.lang.String)'
+  engine java;</programlisting>
+
+      <programlisting>-- Selectable procedure.
+create procedure procGenRows (numRows integer) returns (n integer)
+  external name 'org.firebirdsql.fbjava.ProcTest.genRows(int, int[])'
+  engine java;</programlisting>
+    </section>
+
+    <section id="fbjava-mapping-triggers">
+      <title>Triggers mapping</title>
+
+      <para>Call specification of triggers has always one org.firebirdsql.fbjava.TriggerContext
+      parameter and the Java method should return void. Details of the call and the OLD and NEW values
+      could be consulted and updated on this parameter.</para>
+
+      <para>Examples:</para>
+
+      <programlisting>create or alter trigger employee_log_bdiu
+    before delete or insert or update on employee
+  external name 'org.firebirdsql.example.fbjava.FbLogger.info(
+    org.firebirdsql.fbjava.TriggerContext)'
+  engine java;</programlisting>
+    </section>
+  </section>
+</article>
