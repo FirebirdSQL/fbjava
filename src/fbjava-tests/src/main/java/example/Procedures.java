@@ -18,6 +18,8 @@
  */
 package example;
 
+import java.sql.SQLException;
+
 import org.firebirdsql.fbjava.CallableRoutineContext;
 import org.firebirdsql.fbjava.ExternalResultSet;
 import org.firebirdsql.fbjava.ValuesMetadata;
@@ -120,20 +122,29 @@ public class Procedures
 		};
 	}
 
-	public static void p8(int i1, int i2, String[] o1, int[] o2, int[] o3)
+	public static void p8(int i1, int i2, String[] o1, int[] o2, int[] o3) throws SQLException
 	{
 		CallableRoutineContext context = CallableRoutineContext.get();
-		o1[0] = context.getInputMetadata().getCount() + ", " + context.getOutputMetadata().getCount();
+		o1[0] = context.getInputMetadata().getParameterCount() + ", " + context.getOutputMetadata().getParameterCount();
 	}
 
-	public static void p9(int i1, Integer i2, String[] o1)
+	public static void p9(int i1, Integer i2, String[] o1) throws SQLException
 	{
 		CallableRoutineContext context = CallableRoutineContext.get();
 		ValuesMetadata input = context.getInputMetadata();
 		ValuesMetadata output = context.getOutputMetadata();
 
-		o1[0] = input.getName(0) + ": " + input.getJavaClass(0).toString() + " (" + input.getSqlType(0) + "), " +
-			input.getName(1) + ": " + input.getJavaClass(1).toString() + " (" + input.getSqlType(1) + "), " +
-			output.getName(0) + ": " + output.getJavaClass(0).toString() + " (" + output.getSqlType(0) + ")";
+		o1[0] = Functions.getValuesInfo(input, 1) + ", " + Functions.getValuesInfo(input, 2) + ", " +
+			Functions.getValuesInfo(output, 1);
+	}
+
+	public static void p10(Object i1, Object i2, String[] o1) throws SQLException
+	{
+		CallableRoutineContext context = CallableRoutineContext.get();
+		ValuesMetadata input = context.getInputMetadata();
+		ValuesMetadata output = context.getOutputMetadata();
+
+		o1[0] = Functions.getValuesInfo(input, 1) + ", " + Functions.getValuesInfo(input, 2) + ", " +
+			Functions.getValuesInfo(output, 1);
 	}
 }

@@ -262,20 +262,25 @@ public class Functions
 		return context.getBody();
 	}
 
-	public static String f28(int i1, int i2)
+	public static String f28(int i1, int i2) throws SQLException
 	{
 		CallableRoutineContext context = CallableRoutineContext.get();
-		return context.getInputMetadata().getCount() + ", " + context.getOutputMetadata().getCount();
+		return context.getInputMetadata().getParameterCount() + ", " + context.getOutputMetadata().getParameterCount();
 	}
 
-	public static String f29(int i1, int i2)
+	public static String f29(int i1, int i2) throws SQLException
 	{
 		CallableRoutineContext context = CallableRoutineContext.get();
 		ValuesMetadata input = context.getInputMetadata();
 		ValuesMetadata output = context.getOutputMetadata();
 
-		return input.getName(0) + ": " + input.getJavaClass(0).toString() + " (" + input.getSqlType(0) + "), " +
-			input.getName(1) + ": " + input.getJavaClass(1).toString() + " (" + input.getSqlType(1) + "), " +
-			output.getName(0) + ": " + output.getJavaClass(0).toString() + " (" + output.getSqlType(0) + "), ";
+		return getValuesInfo(input, 1) + ", " + getValuesInfo(input, 2) + ", " + getValuesInfo(output, 1);
+	}
+
+	static String getValuesInfo(ValuesMetadata valuesMetadata, int index) throws SQLException
+	{
+		return valuesMetadata.getName(index) + ": " + valuesMetadata.getJavaClass(index).toString() +
+			" (" + valuesMetadata.getParameterType(index) + ", " + valuesMetadata.getPrecision(index) + ", " +
+			valuesMetadata.getScale(index) + ", " + valuesMetadata.isNullable(index) + ")";
 	}
 }

@@ -18,18 +18,21 @@
  */
 package org.firebirdsql.fbjava;
 
+import java.sql.ParameterMetaData;
+
 
 /**
  * This interface represents a Firebird Values (set of input/output parameters or trigger's old/new fields) metadata.
  *
  * @author <a href="mailto:adrianosf@gmail.com">Adriano dos Santos Fernandes</a>
  */
-public interface ValuesMetadata
+public interface ValuesMetadata extends ParameterMetaData
 {
 	/**
-	 * Gets the number of values.
+	 * Gets the index for a given name.
+	 * Returns -1 if the name is not found.
 	 */
-	public int getCount();
+	public int getIndex(String name);
 
 	/**
 	 * Gets the name for a given value index.
@@ -41,12 +44,4 @@ public interface ValuesMetadata
 	 * Gets the Java Class for a given value index.
 	 */
 	public Class<?> getJavaClass(int index);
-
-	/**
-	 * Gets the Java SQL type (java.sql.Types.*) for a given value index.
-	 * It returns the raw type (i.e. not NUMERIC or DECIMAL, but INTERGER, SMALLINT, etc).
-	 */
-	public int getSqlType(int index);
-
-	//// TODO: more methods
 }

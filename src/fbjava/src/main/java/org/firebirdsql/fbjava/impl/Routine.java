@@ -81,6 +81,8 @@ final class Routine
 				parameter.nullOffset = builtMetadata.getNullOffset(status, i);
 				parameter.offset = builtMetadata.getOffset(status, i);
 				parameter.length = builtMetadata.getLength(status, i);
+				parameter.scale = builtMetadata.getScale(status, i);
+				parameter.isNullable = builtMetadata.isNullable(status, i);
 			}
 
 			valuesMetadata.setup(parameters);

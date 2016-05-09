@@ -25,7 +25,6 @@ final class Parameter
 	{
 		this.dataType = dataType;
 		this.javaClass = javaClass;
-		this.type = type;
 	}
 
 	DataType dataType;
@@ -36,4 +35,6 @@ final class Parameter
 	int nullOffset;
 	int offset;
 	int length;
+	int scale;
+	boolean isNullable;
 }
