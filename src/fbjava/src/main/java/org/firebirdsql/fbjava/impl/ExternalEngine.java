@@ -230,7 +230,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 					default:
 					{
-						String typeName = Optional.of(fbTypeNames.get(type))
+						String typeName = Optional.ofNullable(fbTypeNames.get(type))
 							.map(Pair::getFirst)
 							.orElse(String.valueOf(type));
 
@@ -299,7 +299,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 					default:
 					{
-						String typeName = Optional.of(fbTypeNames.get(type))
+						String typeName = Optional.ofNullable(fbTypeNames.get(type))
 							.map(Pair::getFirst)
 							.orElse(String.valueOf(type));
 
@@ -421,7 +421,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				if (type != ISCConstants.SQL_BLOB)
 				{
-					String typeName = Optional.of(fbTypeNames.get(type))
+					String typeName = Optional.ofNullable(fbTypeNames.get(type))
 						.map(Pair::getFirst)
 						.orElse(String.valueOf(type));
 
@@ -940,7 +940,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				if (defaultType == null)
 				{
-					String typeName = Optional.of(fbTypeNames.get(type))
+					String typeName = Optional.ofNullable(fbTypeNames.get(type))
 						.map(Pair::getFirst)
 						.orElse(String.valueOf(type));
 
