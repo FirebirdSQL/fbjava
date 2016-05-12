@@ -36,12 +36,14 @@ public interface ValuesMetadata extends ParameterMetaData
 
 	/**
 	 * Gets the name for a given value index.
+	 * Index starts from 1.
 	 * Returns null in function output metadata.
 	 */
 	public String getName(int index);
 
 	/**
 	 * Gets the Java Class for a given value index.
+	 * Index starts from 1.
 	 */
 	public Class<?> getJavaClass(int index);
 }

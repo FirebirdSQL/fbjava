@@ -41,6 +41,8 @@ final class InternalContext implements AutoCloseable
 	private IAttachment attachment;
 	private ITransaction transaction;
 	private Routine routine;
+	private ValuesImpl inValues;
+	private ValuesImpl outValues;
 	private Connection connection;
 	private ContextImpl contextImpl;
 
@@ -54,18 +56,23 @@ final class InternalContext implements AutoCloseable
 		return get().contextImpl;
 	}
 
-	public static InternalContext create(IStatus status, IExternalContext context, Routine routine) throws FbException
+	public static InternalContext create(IStatus status, IExternalContext context, Routine routine,
+		ValuesImpl inValues, ValuesImpl outValues) throws FbException
 	{
 		InternalContext internalContext = get();
-		internalContext.setup(status, context, routine);
+		internalContext.setup(status, context, routine, inValues, outValues);
 		return internalContext;
 	}
 
-	private void setup(IStatus status, IExternalContext context, Routine routine) throws FbException
+	private void setup(IStatus status, IExternalContext context, Routine routine,
+		ValuesImpl inValues, ValuesImpl outValues) throws FbException
 	{
 		attachment = context.getAttachment(status);
 		transaction = context.getTransaction(status);
+
 		this.routine = routine;
+		this.inValues = inValues;
+		this.outValues = outValues;
 
 		if (routine == null)
 			contextImpl = null;
@@ -101,6 +108,16 @@ final class InternalContext implements AutoCloseable
 	public Routine getRoutine()
 	{
 		return routine;
+	}
+
+	public ValuesImpl getInValues()
+	{
+		return inValues;
+	}
+
+	public ValuesImpl getOutValues()
+	{
+		return outValues;
 	}
 
 	public Connection getConnection() throws SQLException

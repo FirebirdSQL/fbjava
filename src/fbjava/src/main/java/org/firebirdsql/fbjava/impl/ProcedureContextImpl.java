@@ -19,6 +19,7 @@
 package org.firebirdsql.fbjava.impl;
 
 import org.firebirdsql.fbjava.ProcedureContext;
+import org.firebirdsql.fbjava.Values;
 
 
 class ProcedureContextImpl extends CallableRoutineContextImpl implements ProcedureContext
@@ -26,5 +27,11 @@ class ProcedureContextImpl extends CallableRoutineContextImpl implements Procedu
 	public ProcedureContextImpl(InternalContext internalContext)
 	{
 		super(internalContext);
+	}
+
+	@Override
+	public Values getOutputValues()
+	{
+		return internalContext.getOutValues();
 	}
 }

@@ -50,4 +50,9 @@ public interface CallableRoutineContext extends Context
 	 * For functions, it always returns a ValuesMetadata with a single entry.
 	 */
 	public ValuesMetadata getOutputMetadata();
+
+	/**
+	 * Gets the input values.
+	 */
+	public Values getInputValues();
 }

@@ -127,7 +127,7 @@ final class DbPolicy extends Policy
 
 			String roleName;
 
-			try (InternalContext internalContext = InternalContext.create(status, context, null))
+			try (InternalContext internalContext = InternalContext.create(status, context, null, null, null))
 			{
 				try (Connection conn = internalContext.getConnection())
 				{

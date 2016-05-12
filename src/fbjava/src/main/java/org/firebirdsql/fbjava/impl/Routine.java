@@ -93,14 +93,6 @@ final class Routine
 		}
 	}
 
-	Object[] getFromMessage(IStatus status, IExternalContext context, List<Parameter> parameters, Pointer message)
-		throws FbException
-	{
-		Object[] values = new Object[parameters.size()];
-		getFromMessage(status, context, parameters, message, values);
-		return values;
-	}
-
 	void getFromMessage(IStatus status, IExternalContext context, List<Parameter> parameters, Pointer message,
 		Object[] values) throws FbException
 	{

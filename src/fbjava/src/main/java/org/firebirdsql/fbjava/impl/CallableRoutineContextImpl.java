@@ -19,6 +19,7 @@
 package org.firebirdsql.fbjava.impl;
 
 import org.firebirdsql.fbjava.CallableRoutineContext;
+import org.firebirdsql.fbjava.Values;
 import org.firebirdsql.fbjava.ValuesMetadata;
 
 
@@ -47,5 +48,11 @@ abstract class CallableRoutineContextImpl extends ContextImpl implements Callabl
 	public ValuesMetadata getOutputMetadata()
 	{
 		return internalContext.getRoutine().outputMetadata;
+	}
+
+	@Override
+	public Values getInputValues()
+	{
+		return internalContext.getInValues();
 	}
 }

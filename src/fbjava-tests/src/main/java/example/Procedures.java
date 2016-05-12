@@ -22,6 +22,8 @@ import java.sql.SQLException;
 
 import org.firebirdsql.fbjava.CallableRoutineContext;
 import org.firebirdsql.fbjava.ExternalResultSet;
+import org.firebirdsql.fbjava.ProcedureContext;
+import org.firebirdsql.fbjava.Values;
 import org.firebirdsql.fbjava.ValuesMetadata;
 
 
@@ -146,5 +148,29 @@ public class Procedures
 
 		o1[0] = Functions.getValuesInfo(input, 1) + ", " + Functions.getValuesInfo(input, 2) + ", " +
 			Functions.getValuesInfo(output, 1);
+	}
+
+	public static void p11(Object i1, Object i2, String[] o1) throws SQLException
+	{
+		ProcedureContext context = ProcedureContext.get();
+		ValuesMetadata inputMetadata = context.getInputMetadata();
+		ValuesMetadata outputMetadata = context.getOutputMetadata();
+		Values input = context.getInputValues();
+		Values output = context.getOutputValues();
+
+		if (o1[0] != output.get(1))
+			throw new RuntimeException("Error");
+
+		o1[0] = "a";
+
+		if (o1[0] != output.get(1))
+			throw new RuntimeException("Error");
+
+		output.set(1, "b");
+
+		if (o1[0] != output.get(1))
+			throw new RuntimeException("Error");
+
+		output.set(1, Functions.getValues(inputMetadata, input) + " / " + Functions.getValues(outputMetadata, output));
 	}
 }

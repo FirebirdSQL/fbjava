@@ -20,22 +20,21 @@ package org.firebirdsql.fbjava;
 
 
 /**
- * This interface represents a Firebird Procedure Context.
+ * This interface represents a Firebird Values (set of input/output parameters or trigger's old/new fields) data.
  *
  * @author <a href="mailto:adrianosf@gmail.com">Adriano dos Santos Fernandes</a>
  */
-public interface ProcedureContext extends CallableRoutineContext
+public interface Values
 {
 	/**
-	 * Gets the Context instance associated with the current call.
+	 * Gets the value for a given index.
+	 * Index starts from 1.
 	 */
-	public static ProcedureContext get()
-	{
-		return (ProcedureContext) Context.get();
-	}
+	public Object get(int index);
 
 	/**
-	 * Gets the output values.
+	 * Sets the value for a given index.
+	 * Index starts from 1.
 	 */
-	public Values getOutputValues();
+	public Object set(int index, Object value);
 }

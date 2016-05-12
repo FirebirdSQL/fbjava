@@ -33,6 +33,7 @@ import java.sql.Statement;
 import org.firebirdsql.fbjava.CallableRoutineContext;
 import org.firebirdsql.fbjava.Context;
 import org.firebirdsql.fbjava.FunctionContext;
+import org.firebirdsql.fbjava.Values;
 import org.firebirdsql.fbjava.ValuesMetadata;
 
 
@@ -277,10 +278,35 @@ public class Functions
 		return getValuesInfo(input, 1) + ", " + getValuesInfo(input, 2) + ", " + getValuesInfo(output, 1);
 	}
 
+	public static String f30(Object i1, Object i2) throws SQLException
+	{
+		FunctionContext context = FunctionContext.get();
+		ValuesMetadata inputMetadata = context.getInputMetadata();
+		Values input = context.getInputValues();
+
+		return Functions.getValues(inputMetadata, input);
+	}
+
 	static String getValuesInfo(ValuesMetadata valuesMetadata, int index) throws SQLException
 	{
 		return valuesMetadata.getName(index) + ": " + valuesMetadata.getJavaClass(index).toString() +
 			" (" + valuesMetadata.getParameterType(index) + ", " + valuesMetadata.getPrecision(index) + ", " +
 			valuesMetadata.getScale(index) + ", " + valuesMetadata.isNullable(index) + ")";
+	}
+
+	static String getValues(ValuesMetadata valuesMetadata, Values values) throws SQLException
+	{
+		int count = valuesMetadata.getParameterCount();
+		StringBuilder sb = new StringBuilder();
+
+		for (int i = 1; i <= count; ++i)
+		{
+			if (i != 1)
+				sb.append(", ");
+
+			sb.append(values.get(i));
+		}
+
+		return sb.toString();
 	}
 }

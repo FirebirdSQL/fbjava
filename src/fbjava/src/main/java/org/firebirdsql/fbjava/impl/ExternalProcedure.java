@@ -67,13 +67,15 @@ final class ExternalProcedure implements IExternalProcedureIntf
 	{
 		try
 		{
-			try (InternalContext internalContext = InternalContext.create(status, context, routine))
-			{
-				int inCount = routine.inputParameters.size();
-				int outCount = routine.outputParameters.size();
-				Object[] inOut = new Object[inCount + outCount];
-				Object[] inOut2 = new Object[inCount + outCount];
+			int inCount = routine.inputParameters.size();
+			int outCount = routine.outputParameters.size();
+			Object[] inOut = new Object[inCount + outCount];
+			Object[] inOut2 = new Object[inCount + outCount];
 
+			try (InternalContext internalContext = InternalContext.create(status, context, routine,
+					new ValuesImpl(inOut, inCount),
+					new ValuesImpl(inOut, inCount, outCount)))
+			{
 				routine.getFromMessage(status, context, routine.inputParameters, inMsg, inOut);
 
 				for (int i = inCount; i < inOut.length; ++i)
