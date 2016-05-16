@@ -30,7 +30,13 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <dirent.h>
+
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
+
 #include "jni.h"
 
 using namespace Firebird;
@@ -44,18 +50,37 @@ using std::vector;
 //------------------------------------------------------------------------------
 
 
-class DynLibrary	//// TODO: Windows port
+#ifdef WIN32
+static const char DEFAULT_PATH_SEP = '\\';
+static HMODULE hDllInstance = NULL;
+#else
+static const char DEFAULT_PATH_SEP = '/';
+#endif
+
+
+//------------------------------------------------------------------------------
+
+
+class DynLibrary
 {
 public:
 	DynLibrary(const string& filename)
 		: filename(filename)
 	{
+#ifdef WIN32
+		module = LoadLibrary(filename.c_str());
+#else
 		module = dlopen(filename.c_str(), RTLD_NOW);
+#endif
 	}
 
 	~DynLibrary()
 	{
+#ifdef WIN32
+		FreeLibrary(module);
+#else
 		dlclose(module);
+#endif
 	}
 
 public:
@@ -63,7 +88,11 @@ public:
 	template <typename T>
 	void findSymbol(const char* name, T& ptr)
 	{
+#ifdef WIN32
+		ptr = reinterpret_cast<T>(GetProcAddress(module, name));
+#else
 		ptr = reinterpret_cast<T>(dlsym(module, name));
+#endif
 
 		if (!ptr)
 			throw runtime_error(string("Symbol '") + name + "' not found in '" + filename + "'.");
@@ -71,7 +100,12 @@ public:
 
 private:
 	string filename;
+
+#ifdef WIN32
+	HMODULE module;
+#else
 	void* module;
+#endif
 };
 
 
@@ -100,8 +134,8 @@ static string findJvmLibrary(const char* javaHome)
 {
 #ifdef WIN32
 	static const char* const DEFAULT_PLACES[] = {
-		"\\jre\\bin\\\\server\\jvm.dll",
-		"\\jre\\lib\\\\client\\jvm.dll"
+		"\\jre\\bin\\server\\jvm.dll",
+		"\\jre\\lib\\client\\jvm.dll"
 	};
 #else
 #ifdef __amd64
@@ -227,9 +261,25 @@ static jmethodID getMethodID(JNIEnv* env, jclass cls, const char* name, const ch
 
 static void init()
 {
+#ifdef WIN32
+	string libFile;
+
+	{	// scope
+		char buffer[MAX_PATH];
+		GetModuleFileName(hDllInstance, buffer, sizeof(buffer));
+		libFile = buffer;
+	}
+#else
 	Dl_info dlInfo;
 	if (dladdr((void*) init, &dlInfo) == 0)
 		throw runtime_error("Cannot get the plugin library path.");
+
+	string libFile(dlInfo.dli_fname);
+#endif
+
+	string libDir(libFile.substr(0, strrchr(libFile.c_str(), DEFAULT_PATH_SEP) - libFile.c_str()));
+	libDir += DEFAULT_PATH_SEP;
+	libDir += "../jar";
 
 	const char* javaHome = getenv("JAVA_HOME");
 
@@ -296,16 +346,6 @@ static void init()
 	jmethodID urlClassLoaderLoadClassId = getMethodID(env, urlClassLoaderCls, "loadClass",
 		"(Ljava/lang/String;Z)Ljava/lang/Class;");
 
-#ifdef WIN32
-	static const char DEFAULT_PATH_SEP = '\\';
-#else
-	static const char DEFAULT_PATH_SEP = '/';
-#endif
-
-	string libDir(dlInfo.dli_fname, strrchr(dlInfo.dli_fname, DEFAULT_PATH_SEP) - dlInfo.dli_fname);
-	libDir += DEFAULT_PATH_SEP;
-	libDir += "../jar";
-
 	vector<string> classPathEntries;
 
 	DIR* dir = opendir(libDir.c_str());
@@ -317,12 +357,24 @@ static void init()
 
 	while ((dent = readdir(dir)))
 	{
-		if (dent->d_type == DT_REG || dent->d_type == DT_LNK)
-		{
-			string name(dent->d_name);
+		string name(dent->d_name);
 
+#ifdef WIN32
+		if (name != "." && name != "..")
+#else
+		if (dent->d_type == DT_REG || dent->d_type == DT_LNK)
+#endif
+		{
 			if (name.length() > 4 && name.substr(name.length() - 4) == ".jar")
-				classPathEntries.push_back("file://" + libDir + DEFAULT_PATH_SEP + dent->d_name);
+			{
+				string protocol("file://");
+
+#ifdef WIN32
+				protocol += "/";
+#endif
+
+				classPathEntries.push_back(protocol + libDir + DEFAULT_PATH_SEP + dent->d_name);
+			}
 		}
 	}
 
@@ -364,7 +416,7 @@ static void init()
 	jmethodID mainInitializeId = getStaticMethodID(env, mainCls, "initialize", "(Ljava/lang/String;)V");
 	checkJavaException(env);
 
-	jstring nativeLibrary = env->NewStringUTF(dlInfo.dli_fname);
+	jstring nativeLibrary = env->NewStringUTF(libFile.c_str());
 	if (!nativeLibrary)
 		checkJavaException(env);
 
@@ -387,3 +439,14 @@ extern "C" void /*FB_EXPORTED*/ FB_PLUGIN_ENTRY_POINT(IMaster* master)
 		fprintf(stderr, "%s\n", e.what());
 	}
 }
+
+
+#ifdef WIN32
+BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, void*)
+{
+	if (dwReason == DLL_PROCESS_ATTACH)
+		hDllInstance = hInstance;
+
+	return TRUE;
+}
+#endif

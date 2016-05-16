@@ -8,7 +8,12 @@ LD	:= $(CXX)
 SRC_DIR		:= src/native
 BUILD_DIR	:= build
 OUT_DIR		:= output
+
+ifeq ($(OS),Windows_NT)
+SHRLIB_EXT	:= dll
+else
 SHRLIB_EXT	:= so
+endif
 
 OBJ_DIR := $(BUILD_DIR)/$(TARGET)
 BIN_DIR := $(OUT_DIR)/$(TARGET)/bin
@@ -20,7 +25,11 @@ OBJ_DIRS := $(addprefix $(OBJ_DIR)/,$(MODULES))
 SRCS := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 
-CXX_FLAGS := -ggdb -fPIC -MMD -MP
+CXX_FLAGS := -ggdb -MMD -MP
+
+ifneq ($(OS),Windows_NT)
+CXX_FLAGS += -fPIC
+endif
 
 ifeq ($(TARGET),release)
 	CXX_FLAGS += -O3
@@ -45,7 +54,7 @@ all: mkdirs \
 mkdirs: $(OBJ_DIRS) $(BIN_DIR) $(LIB_DIR)
 
 $(OBJ_DIRS) $(BIN_DIR) $(LIB_DIR):
-	@mkdir -p $@
+	@"mkdir" -p $@
 
 clean:
 	@rm -rf $(BUILD_DIR) $(OUT_DIR)
