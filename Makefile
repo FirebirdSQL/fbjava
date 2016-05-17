@@ -26,8 +26,11 @@ SRCS := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 
 CXX_FLAGS := -ggdb -MMD -MP
+LD_FLAGS  :=
 
-ifneq ($(OS),Windows_NT)
+ifeq ($(OS),Windows_NT)
+LD_FLAGS  += -static-libgcc -static-libstdc++
+else
 CXX_FLAGS += -fPIC
 endif
 
@@ -64,4 +67,4 @@ $(foreach bdir,$(OBJ_DIRS),$(eval $(call compile,$(bdir))))
 -include $(addsuffix .d,$(basename $(OBJS)))
 
 $(LIB_DIR)/libfbjava.$(SHRLIB_EXT): $(OBJ_DIR)/fbjava/fbjava.o
-	$(LD) -shared $^ -o $@ -lfbclient
+	$(LD) -shared $(LD_FLAGS) $^ -o $@ -lfbclient
