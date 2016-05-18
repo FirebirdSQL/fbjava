@@ -26,6 +26,26 @@ package org.firebirdsql.fbjava;
  */
 public interface TriggerContext extends Context
 {
+	public static enum Type
+	{
+		BEFORE,
+		AFTER,
+		DATABASE
+	}
+
+	public static enum Action
+	{
+		INSERT,
+		UPDATE,
+		DELETE,
+		CONNECT,
+		DISCONNECT,
+		TRANS_START,
+		TRANS_COMMIT,
+		TRANS_ROLLBACK,
+		DDL
+	}
+
 	/**
 	 * Gets the Context instance associated with the current call.
 	 */
@@ -33,4 +53,38 @@ public interface TriggerContext extends Context
 	{
 		return (TriggerContext) Context.get();
 	}
+
+	/**
+	 * Gets the table that fired the trigger.
+	 * Returns null for database and DDL triggers.
+	 */
+	public String getTableName();
+
+	/**
+	 * Gets the type of the trigger.
+	 */
+	public Type getType();
+
+	/**
+	 * Gets the action that fired the trigger.
+	 */
+	public Action getAction();
+
+	/**
+	 * Gets the fields metadata.
+	 * Returns null for database/ddl triggers.
+	 */
+	public ValuesMetadata getFieldsMetadata();
+
+	/**
+	 * Gets the fields old values.
+	 * Returns null for database/ddl and insert triggers.
+	 */
+	public Values getOldValues();
+
+	/**
+	 * Gets the fields new values.
+	 * Returns null for database/ddl and delete triggers.
+	 */
+	public Values getNewValues();
 }

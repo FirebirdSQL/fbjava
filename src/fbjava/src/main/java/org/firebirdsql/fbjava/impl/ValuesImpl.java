@@ -42,6 +42,8 @@ final class ValuesImpl implements Values
 	@Override
 	public Object get(int index)
 	{
+		//// TODO: read only values
+
 		if (outCount == -1)
 		{
 			checkIndex(index, inCount);

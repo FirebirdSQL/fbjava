@@ -60,11 +60,19 @@ final class InternalContext implements AutoCloseable
 		ValuesImpl inValues, ValuesImpl outValues) throws FbException
 	{
 		InternalContext internalContext = get();
-		internalContext.setup(status, context, routine, inValues, outValues);
+		internalContext.setup(status, context, routine, 0, inValues, outValues);
 		return internalContext;
 	}
 
-	private void setup(IStatus status, IExternalContext context, Routine routine,
+	public static InternalContext createTrigger(IStatus status, IExternalContext context, Routine routine,
+		int action, ValuesImpl oldValues, ValuesImpl newValues) throws FbException
+	{
+		InternalContext internalContext = get();
+		internalContext.setup(status, context, routine, action, oldValues, newValues);
+		return internalContext;
+	}
+
+	private void setup(IStatus status, IExternalContext context, Routine routine, int triggerAction,
 		ValuesImpl inValues, ValuesImpl outValues) throws FbException
 	{
 		attachment = context.getAttachment(status);
@@ -89,7 +97,7 @@ final class InternalContext implements AutoCloseable
 					break;
 
 				case TRIGGER:
-					contextImpl = new TriggerContextImpl(this);
+					contextImpl = new TriggerContextImpl(this, triggerAction);
 					break;
 			}
 		}

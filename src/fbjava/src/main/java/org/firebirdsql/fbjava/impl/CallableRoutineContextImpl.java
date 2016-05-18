@@ -25,8 +25,6 @@ import org.firebirdsql.fbjava.ValuesMetadata;
 
 abstract class CallableRoutineContextImpl extends ContextImpl implements CallableRoutineContext
 {
-	//// TODO: input/output parameters
-
 	public CallableRoutineContextImpl(InternalContext internalContext)
 	{
 		super(internalContext);

@@ -1138,8 +1138,8 @@ final class ExternalEngine implements IExternalEngineIntf
 	public IExternalTrigger makeTrigger(IStatus status, IExternalContext context,
 		IRoutineMetadata metadata, IMetadataBuilder fieldsBuilder) throws FbException
 	{
-		System.out.println("makeTrigger");
-		return null;
+		Routine routine = getRoutine(status, context, metadata, fieldsBuilder, null, Routine.Type.TRIGGER);
+		return ExternalTrigger.create(routine);
 	}
 
 	private Routine getRoutine(IStatus status, IExternalContext context, IRoutineMetadata metadata,
@@ -1150,7 +1150,15 @@ final class ExternalEngine implements IExternalEngineIntf
 			String entryPoint = metadata.getEntryPoint(status);
 			String invalidMethodSignatureMsg = String.format("Invalid method signature: '%s'", entryPoint);
 			int paramsStart = entryPoint.indexOf('(');
+
+			if (paramsStart == -1)
+				throw new FbException(invalidMethodSignatureMsg);
+
 			int methodStart = entryPoint.lastIndexOf('.', paramsStart) + 1;
+
+			if (methodStart == 0)
+				throw new FbException(invalidMethodSignatureMsg);
+
 			String className = entryPoint.substring(0, methodStart - 1).trim();
 			String methodName = entryPoint.substring(methodStart, paramsStart).trim();
 
@@ -1164,20 +1172,23 @@ final class ExternalEngine implements IExternalEngineIntf
 
 			skipBlanks(entryPoint, pos);
 
-			IMessageMetadata inMetadata = metadata.getInputMetadata(status);
+			IMessageMetadata inMetadata = type == Routine.Type.TRIGGER ? null : metadata.getInputMetadata(status);
 			try
 			{
-				int inCount = inMetadata.getCount(status);
+				int inCount = inMetadata == null ? 0 : inMetadata.getCount(status);
 
-				IMessageMetadata outMetadata = metadata.getOutputMetadata(status);
+				IMessageMetadata outMetadata = type == Routine.Type.TRIGGER ? null : metadata.getOutputMetadata(status);
 				try
 				{
-					int outCount = outMetadata.getCount(status);
+					int outCount = outMetadata == null ? 0 : outMetadata.getCount(status);
 
 					if (peekChar(entryPoint, pos) == ')')
 						++pos[0];
 					else
 					{
+						if (type == Routine.Type.TRIGGER)
+							throw new FbException(invalidMethodSignatureMsg);
+
 						int n = 0;
 
 						do
@@ -1237,6 +1248,9 @@ final class ExternalEngine implements IExternalEngineIntf
 					else if (pos[0] != entryPoint.length())
 						throw new FbException(invalidMethodSignatureMsg);
 
+					//// TODO: Parameters prefixed with a Context parameter.
+					//// TODO: Zero parameters.
+
 					switch (type)
 					{
 						case FUNCTION:
@@ -1268,6 +1282,7 @@ final class ExternalEngine implements IExternalEngineIntf
 						}
 
 						case PROCEDURE:
+						{
 							if (paramTypes.size() != inCount + outCount)
 							{
 								throw new FbException(String.format("Number of parameters (%d) in the Java method " +
@@ -1292,27 +1307,70 @@ final class ExternalEngine implements IExternalEngineIntf
 							if (routine.method.getReturnType() != void.class &&
 								!ExternalResultSet.class.isAssignableFrom(routine.method.getReturnType()))
 							{
-								throw new FbException("Java method for a procedure must return void or an class " +
-									"implementing ExternalResultSet interface");	//// TODO: package name
+								throw new FbException(String.format(
+									"Java method for a procedure must return void or an class implementing %s interface",
+									ExternalResultSet.class.getName()));
 							}
 
 							break;
+						}
+
+						case TRIGGER:
+						{
+							routine.method = clazz.getMethod(methodName);
+
+							if (routine.method.getReturnType() != void.class)
+								throw new FbException("Java method for a trigger must return void");
+
+							if (inBuilder != null)
+							{
+								IMessageMetadata triggerMetadata = metadata.getTriggerMetadata(status);
+								try
+								{
+									int count = triggerMetadata.getCount(status);
+
+									for (int index = 0; index < count; ++index)
+									{
+										Parameter parameter = new Parameter(
+											dataTypesByClass.get(Object.class), Object.class);
+										parameter.name = triggerMetadata.getField(status, index);
+										parameter.type = fbTypeNames.get(triggerMetadata.getType(status, index));
+
+										routine.inputParameters.add(parameter);
+									}
+
+									routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
+										triggerMetadata, inBuilder);
+								}
+								finally
+								{
+									triggerMetadata.release();
+								}
+							}
+
+							break;
+						}
 					}
 
-					routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
-						inMetadata, inBuilder);
+					if (type != Routine.Type.TRIGGER)
+					{
+						routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
+							inMetadata, inBuilder);
 
-					routine.setupParameters(status, routine.outputParameters, routine.outputMetadata,
-						outMetadata, outBuilder);
+						routine.setupParameters(status, routine.outputParameters, routine.outputMetadata,
+							outMetadata, outBuilder);
+					}
 				}
 				finally
 				{
-					outMetadata.release();
+					if (outMetadata != null)
+						outMetadata.release();
 				}
 			}
 			finally
 			{
-				inMetadata.release();
+				if (inMetadata != null)
+					inMetadata.release();
 			}
 
 			return routine;

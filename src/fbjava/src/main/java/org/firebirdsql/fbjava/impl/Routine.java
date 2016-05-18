@@ -22,7 +22,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.firebirdsql.fbjava.TriggerContext;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
+import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalTrigger;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IMessageMetadata;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IMetadataBuilder;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IRoutineMetadata;
@@ -45,6 +47,8 @@ final class Routine
 	final String objectName;
 	final String packageName;
 	final String body;
+	String tableName;
+	TriggerContext.Type triggerType;
 	String nameInfo;
 	Method method;
 	final List<Parameter> inputParameters = new ArrayList<>();
@@ -60,6 +64,29 @@ final class Routine
 		objectName = metadata.getName(status);
 		packageName = metadata.getPackage(status);
 		body = metadata.getBody(status);
+
+		if (type == Type.TRIGGER)
+		{
+			tableName = metadata.getTriggerTable(status);
+
+			switch (metadata.getTriggerType(status))
+			{
+				case IExternalTrigger.TYPE_BEFORE:
+					triggerType = TriggerContext.Type.BEFORE;
+					break;
+
+				case IExternalTrigger.TYPE_AFTER:
+					triggerType = TriggerContext.Type.AFTER;
+					break;
+
+				case IExternalTrigger.TYPE_DATABASE:
+					triggerType = TriggerContext.Type.DATABASE;
+					break;
+
+				default:
+					throw new AssertionError("Unrecognized trigger type");
+			}
+		}
 	}
 
 	void setupParameters(IStatus status, List<Parameter> parameters, ValuesMetadataImpl valuesMetadata,
