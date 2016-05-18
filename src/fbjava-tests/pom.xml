@@ -20,6 +20,7 @@
 			<groupId>org.firebirdsql.fbjava</groupId>
 			<artifactId>fbjava</artifactId>
 			<version>${fbjava.version}</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 </project>
