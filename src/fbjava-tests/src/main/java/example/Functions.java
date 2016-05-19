@@ -287,6 +287,21 @@ public class Functions
 		return Functions.getValues(inputMetadata, input);
 	}
 
+	public static String f31(String connStr) throws SQLException
+	{
+		try (Connection connection = DriverManager.getConnection(connStr))
+		{
+			try (Statement statement = connection.createStatement())
+			{
+				try (ResultSet rs = statement.executeQuery("select current_user from rdb$database"))
+				{
+					rs.next();
+					return rs.getString(1);
+				}
+			}
+		}
+	}
+
 	static String getValuesInfo(ValuesMetadata valuesMetadata, int index) throws SQLException
 	{
 		return valuesMetadata.getName(index) + ": " + valuesMetadata.getJavaClass(index).toString() +

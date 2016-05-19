@@ -45,6 +45,10 @@ begin
 		values (:pergro_id, 'java.util.PropertyPermission', 'os.*', 'read');
 	insert into permission (permission_group, class_name, arg1, arg2)
 		values (:pergro_id, 'java.util.PropertyPermission', 'path.separator', 'read');
+	insert into permission (permission_group, class_name, arg1, arg2)
+		values (:pergro_id, 'java.util.PropertyPermission', 'jna.encoding', 'read');
+	insert into permission (permission_group, class_name, arg1, arg2)
+		values (:pergro_id, 'java.util.PropertyPermission', 'jna.profiler.prefix', 'read');
 
 	insert into permission_group_grant (permission_group, database_pattern, grantee_type, grantee_pattern)
 		values (:pergro_id, '%', 'USER', '%');
