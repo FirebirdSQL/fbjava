@@ -28,6 +28,7 @@ import java.security.cert.Certificate;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import org.firebirdsql.gds.ISCConstants;
 import org.firebirdsql.gds.TransactionParameterBuffer;
@@ -55,8 +56,11 @@ final class DbClassLoader extends URLClassLoader
 
 		codeSource = new CodeSource(urls[0], (Certificate[]) null);
 
+		Properties properties = new Properties();
+		properties.setProperty("isc_dpb_no_db_triggers", "1");
+
 		connection = (FBConnection) DriverManager.getConnection(
-			"jdbc:firebirdsql:embedded:" + databaseName + "?charSet=UTF-8");
+			"jdbc:firebirdsql:embedded:" + databaseName + "?charSet=UTF-8", properties);
 		connection.setAutoCommit(false);
 		connection.setReadOnly(true);
 
