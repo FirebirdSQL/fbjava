@@ -18,6 +18,9 @@
  */
 package org.firebirdsql.fbjava.impl;
 
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
 
 import org.firebirdsql.gds.DatabaseParameterBuffer;
@@ -48,29 +51,43 @@ final class InternalDatabaseFactory extends FbEmbeddedDatabaseFactory
 
 		Main.library.fb_get_database_handle(statusVector, attachmentHandle, internalContext.getAttachment());
 
-		JnaDatabaseConnection jnaDatabaseConnection = new JnaDatabaseConnection(
-			getClientLibrary(), connectionProperties)
+		try
 		{
-			@Override
-			public JnaDatabase identify() throws SQLException
+			JnaDatabaseConnection jnaDatabaseConnection =
+				AccessController.doPrivileged(new PrivilegedExceptionAction<JnaDatabaseConnection>()
 			{
-				return new JnaDatabase(this) {
-					@Override
-					protected void attachOrCreate(DatabaseParameterBuffer dpb, boolean create) throws SQLException
-					{
-						handle.setValue(attachmentHandle.getValue());
-						setAttached();
-						afterAttachActions();
-					}
+				@Override
+				public JnaDatabaseConnection run() throws Exception
+				{
+					return new JnaDatabaseConnection(getClientLibrary(), connectionProperties) {
+						@Override
+						public JnaDatabase identify() throws SQLException
+						{
+							return new JnaDatabase(this) {
+								@Override
+								protected void attachOrCreate(DatabaseParameterBuffer dpb, boolean create)
+									throws SQLException
+								{
+									handle.setValue(attachmentHandle.getValue());
+									setAttached();
+									afterAttachActions();
+								}
 
-					@Override
-					protected void internalDetach()
-					{
-					}
-				};
-			}
-		};
+								@Override
+								protected void internalDetach()
+								{
+								}
+							};
+						}
+					};
+				}
+			});
 
-		return jnaDatabaseConnection.identify();
+			return jnaDatabaseConnection.identify();
+		}
+		catch (PrivilegedActionException e)
+		{
+			throw new SQLException(e.getCause());
+		}
 	}
 }
