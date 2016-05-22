@@ -19,8 +19,22 @@
 package org.firebirdsql.fbjava;
 
 
+/**
+ * This interface represents a Firebird Externa ResultSet for a selectable stored procedure.
+ *
+ * @author <a href="mailto:adrianosf@gmail.com">Adriano dos Santos Fernandes</a>
+ */
 public interface ExternalResultSet
 {
+	/**
+	 * Called by Firebird to get records from the ExternalResultSet.
+	 * @return	false to stop and true to continue.
+	 * @throws Exception
+	 */
 	public boolean fetch() throws Exception;
+
+	/**
+	 * Called by Firebird after fetched all rows from the ExternalResultSet.
+	 */
 	public void close();
 }

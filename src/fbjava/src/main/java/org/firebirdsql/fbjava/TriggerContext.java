@@ -26,6 +26,9 @@ package org.firebirdsql.fbjava;
  */
 public interface TriggerContext extends Context
 {
+	/**
+	 * Trigger Type.
+	 */
 	public static enum Type
 	{
 		BEFORE,
@@ -33,6 +36,9 @@ public interface TriggerContext extends Context
 		DATABASE
 	}
 
+	/**
+	 * Trigger Action.
+	 */
 	public static enum Action
 	{
 		INSERT,
