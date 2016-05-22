@@ -16,7 +16,6 @@ SHRLIB_EXT	:= so
 endif
 
 OBJ_DIR := $(BUILD_DIR)/$(TARGET)
-BIN_DIR := $(OUT_DIR)/$(TARGET)/bin
 LIB_DIR := $(OUT_DIR)/$(TARGET)/lib
 
 SRC_DIRS := $(addprefix $(SRC_DIR)/,$(MODULES))
@@ -54,9 +53,9 @@ endef
 all: mkdirs \
 	$(LIB_DIR)/libfbjava.$(SHRLIB_EXT) \
 
-mkdirs: $(OBJ_DIRS) $(BIN_DIR) $(LIB_DIR)
+mkdirs: $(OBJ_DIRS) $(LIB_DIR)
 
-$(OBJ_DIRS) $(BIN_DIR) $(LIB_DIR):
+$(OBJ_DIRS) $(LIB_DIR):
 	@"mkdir" -p $@
 
 clean:
