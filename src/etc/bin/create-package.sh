@@ -20,10 +20,10 @@ else
 fi
 
 cd $BASE_DIR
-make TARGET=$CONFIG
+make TARGET=$CONFIG clean all
 
-cd $BASE_DIR/src/fbjava
-mvn package dependency:copy-dependencies
+cd $BASE_DIR/src
+mvn clean package dependency:copy-dependencies
 
 mkdir -p \
 	$TARGET_DIR/bin \
@@ -35,9 +35,10 @@ mkdir -p \
 cp $BASE_DIR/src/etc/bin/setenv.$SHELL_EXT $TARGET_DIR/bin
 cp $BASE_DIR/src/etc/bin/fbjava-deployer.$SHELL_EXT $TARGET_DIR/bin
 cp $BASE_DIR/src/fbjava/target/*.jar $TARGET_DIR/jar
-cp $BASE_DIR/src/fbjava/target/dependency/*.jar $TARGET_DIR/jar
+cp $BASE_DIR/src/fbjava-impl/target/*.jar $TARGET_DIR/jar
+cp $BASE_DIR/src/fbjava-impl/target/dependency/*.jar $TARGET_DIR/jar
 cp $BASE_DIR/output/$CONFIG/lib/libfbjava.$SHRLIB_EXT $TARGET_DIR/lib
-cp $BASE_DIR/src/fbjava/src/main/resources/org/firebirdsql/fbjava/*.sql $TARGET_DIR/scripts
+cp $BASE_DIR/src/fbjava-impl/src/main/resources/org/firebirdsql/fbjava/*.sql $TARGET_DIR/scripts
 cp $BASE_DIR/src/etc/conf/fbjava.conf $TARGET_DIR/conf
 cp $BASE_DIR/src/etc/scripts/java-security.sql $TARGET_DIR/scripts
 

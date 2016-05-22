@@ -35,6 +35,8 @@ import java.sql.Statement;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
+import org.firebirdsql.fbjava.ExternalResultSet;
+
 
 public class Deployer
 {

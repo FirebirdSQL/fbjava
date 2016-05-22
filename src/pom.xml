@@ -6,15 +6,13 @@
 
 	<groupId>org.firebirdsql.fbjava</groupId>
 	<artifactId>fbjava-parent</artifactId>
-	<version>0.1-SNAPSHOT</version>
 	<name>fbjava-parent</name>
+	<version>0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
-
-		<fbjava.version>0.1-SNAPSHOT</fbjava.version>
 
 		<jaybird.version>3.0.0-SNAPSHOT</jaybird.version>
 		<jna.version>4.2.1</jna.version>
@@ -32,6 +30,7 @@
 
 	<modules>
 		<module>fbjava</module>
+		<module>fbjava-impl</module>
 		<module>fbjava-tests</module>
 	</modules>
 
