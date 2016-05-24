@@ -18,7 +18,7 @@ And this setting for the artifact dependency:
 <dependency>
 	<groupId>org.firebirdsql.fbjava</groupId>
 	<artifactId>fbjava</artifactId>
-	<version>...</version>
+	<version>1.0-alpha-1</version>
 	<scope>provided</scope>
 </dependency>
 ```
