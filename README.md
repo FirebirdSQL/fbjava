@@ -8,7 +8,7 @@ Use this setting as maven repository:
 <repository>
 	<id>fbjava</id>
 	<name>fbjava</name>
-	<url>https://raw.githubusercontent.com/asfernandes/fbjava-maven/master</url>
+	<url>https://raw.githubusercontent.com/asfernandes/fbjava-maven/master/maven2</url>
 </repository>
 ```
 
