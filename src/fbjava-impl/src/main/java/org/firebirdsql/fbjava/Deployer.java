@@ -35,8 +35,6 @@ import java.sql.Statement;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
-import org.firebirdsql.fbjava.ExternalResultSet;
-
 
 public class Deployer
 {
@@ -323,6 +321,7 @@ public class Deployer
 			boolean installPlugin = false;
 			boolean uninstallPlugin = false;
 			String installJar = null;
+			String updateJar = null;
 			String replaceJar = null;
 			String removeJar = null;
 
@@ -334,6 +333,11 @@ public class Deployer
 			{
 				if (more2Args)
 					installJar = args[i + 1];
+			}
+			else if (args[i].equals("--update-jar"))
+			{
+				if (more2Args)
+					updateJar = args[i + 1];
 			}
 			else if (args[i].equals("--replace-jar"))
 			{
@@ -359,9 +363,27 @@ public class Deployer
 					while (result.fetch())
 						;
 				}
-				else if (replaceJar != null)
+				else if (updateJar != null)
 				{
 					doRemoveJar(args[i + 2]);
+
+					String[] className = new String[1];
+					InstallJarResult result = doVerboseInstallJar(args[i + 1], args[i + 2],
+						className, false);
+
+					while (result.fetch())
+						;
+				}
+				else if (replaceJar != null)
+				{
+					try
+					{
+						doRemoveJar(args[i + 2]);
+					}
+					catch (SQLException e)
+					{
+						// Do nothing, let remove fail.
+					}
 
 					String[] className = new String[1];
 					InstallJarResult result = doVerboseInstallJar(args[i + 1], args[i + 2],
@@ -403,7 +425,8 @@ public class Deployer
 			System.out.println("\t--install-plugin\t\tInstall the plugin on a database");
 			System.out.println("\t--uninstall-plugin\t\tUninstall the plugin from a database");
 			System.out.println("\t--install-jar <url> <name>\tInstall a JAR on a database");
-			System.out.println("\t--replace-jar <url> <name>\tReplaces a JAR on a database");
+			System.out.println("\t--update-jar <url> <name>\tUpdates an existing JAR on a database");
+			System.out.println("\t--replace-jar <url> <name>\tReplaces (install or update) a JAR on a database");
 			System.out.println("\t--remove-jar <name>\t\tRemoves a JAR from the database");
 			return;
 		}
