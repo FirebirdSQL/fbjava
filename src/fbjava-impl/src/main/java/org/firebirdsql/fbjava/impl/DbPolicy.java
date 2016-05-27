@@ -90,11 +90,11 @@ final class DbPolicy extends Policy
 					"    on pg.id = pgg.permission_group\n" +
 					"  join permission p\n" +
 					"    on p.permission_group = pg.id\n" +
-					"  where cast(? as varchar(1024)) similar to pgg.database_pattern escape '\\' and\n" +
+					"  where cast(? as varchar(1024)) similar to pgg.database_pattern escape '|' and\n" +
 					"        ((pgg.grantee_type = 'USER' and\n" +
-					"          cast(? as varchar(512)) similar to pgg.grantee_pattern escape '\\') or\n" +
+					"          cast(? as varchar(512)) similar to pgg.grantee_pattern escape '|') or\n" +
 					"         (pgg.grantee_type = 'ROLE' and\n" +
-					"          cast(? as varchar(512)) similar to pgg.grantee_pattern escape '\\'))");
+					"          cast(? as varchar(512)) similar to pgg.grantee_pattern escape '|'))");
 			}
 		}
 	}
