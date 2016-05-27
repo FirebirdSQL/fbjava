@@ -67,6 +67,11 @@ begin
 		name type of column fb$java$jar.name not null
 	);
 
+	procedure update_jar (
+		url varchar(256) character set utf8 not null,
+		name type of column fb$java$jar.name not null
+	);
+
 	procedure replace_jar (
 		url varchar(256) character set utf8 not null,
 		name type of column fb$java$jar.name not null
@@ -146,13 +151,29 @@ begin
 		end
 	end
 
-	procedure replace_jar (
+	procedure update_jar (
 		url varchar(256) character set utf8 not null,
 		name type of column fb$java$jar.name not null
 	)
 	as
 	begin
 		execute procedure remove_jar(name);
+		execute procedure install_jar(url, name);
+	end
+
+	procedure replace_jar (
+		url varchar(256) character set utf8 not null,
+		name type of column fb$java$jar.name not null
+	)
+	as
+	begin
+		begin
+			execute procedure remove_jar(name);
+		when any do
+			begin
+			end
+		end 
+
 		execute procedure install_jar(url, name);
 	end
 
