@@ -42,6 +42,7 @@ cp $BASE_DIR/src/fbjava/target/*.jar $TARGET_DIR/jar
 cp $BASE_DIR/src/fbjava-impl/target/*.jar $TARGET_DIR/jar
 cp $BASE_DIR/src/fbjava-impl/target/dependency/*.jar $TARGET_DIR/jar
 cp -r $BASE_DIR/src/fbjava/target/site/apidocs $TARGET_DIR/docs
+cp $BASE_DIR/src/etc/doc/fbjava.pdf $TARGET_DIR/docs
 cp $BASE_DIR/output/$CONFIG/lib/libfbjava.$SHRLIB_EXT $TARGET_DIR/lib
 cp $BASE_DIR/src/fbjava-impl/src/main/resources/org/firebirdsql/fbjava/*.sql $TARGET_DIR/scripts
 cp $BASE_DIR/src/etc/conf/fbjava.conf $TARGET_DIR/conf

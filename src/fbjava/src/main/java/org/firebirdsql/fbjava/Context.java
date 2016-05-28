@@ -60,6 +60,8 @@ public interface Context
 
 	/**
 	 * Gets the Connection object.
+	 * It's also possible to get a Connection object with
+	 * DriverManager.getConnection("jdbc:default:connection")
 	 */
 	public Connection getConnection() throws SQLException;
 
@@ -70,7 +72,6 @@ public interface Context
 
 	/**
 	 * Gets info stored at entry point metadata.
-	 * TODO: Document how this can be used.
 	 */
 	public String getNameInfo();
 
