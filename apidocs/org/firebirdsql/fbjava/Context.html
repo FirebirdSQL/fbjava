@@ -191,7 +191,9 @@ var activeTableTab = "activeTableTab";
 <h4>getConnection</h4>
 <pre><a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html?is-external=true" title="class or interface in java.sql">Connection</a>&nbsp;getConnection()
                   throws <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql">SQLException</a></pre>
-<div class="block">Gets the Connection object.</div>
+<div class="block">Gets the Connection object.
+ It's also possible to get a Connection object with
+ DriverManager.getConnection("jdbc:default:connection")</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
 <dd><code><a href="http://docs.oracle.com/javase/8/docs/api/java/sql/SQLException.html?is-external=true" title="class or interface in java.sql">SQLException</a></code></dd>
@@ -215,8 +217,7 @@ var activeTableTab = "activeTableTab";
 <li class="blockList">
 <h4>getNameInfo</h4>
 <pre><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;getNameInfo()</pre>
-<div class="block">Gets info stored at entry point metadata.
- TODO: Document how this can be used.</div>
+<div class="block">Gets info stored at entry point metadata.</div>
 </li>
 </ul>
 <a name="getBody--">
