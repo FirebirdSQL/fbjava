@@ -1447,7 +1447,7 @@ final class ExternalEngine implements IExternalEngineIntf
 		int len = s.length();
 		char c;
 
-		while (pos[0] < len && ((c = s.charAt(pos[0])) == ' ' || c == '\t'))
+		while (pos[0] < len && ((c = s.charAt(pos[0])) == ' ' || c == '\t' || c == '\r' || c == '\n'))
 			++pos[0];
 	}
 
