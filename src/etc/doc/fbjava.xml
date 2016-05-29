@@ -33,13 +33,19 @@
   <section id="fbjava-installation">
     <title>Installing FB/Java in Firebird</title>
 
-    <para>Server installation of FB/Java is a simple task involving two passes. The first necessary
-    pass is to extract the zip/tarball package in a place subsequently named here as
-    &lt;fbjava-root&gt; (this is the parent directory of the packaged bin and others directories).
-    The second pass is to include a line in the end of &lt;firebird-root&gt;/plugins.conf file
+    <para>Server installation of FB/Java is a simple task involving three passes. The first
+    necessary pass is to extract the zip/tarball package in a place (subsequently named here as
+    &lt;fbjava-root&gt; - this is the parent directory of the packaged bin and others directories).
+    </para>
+
+    <para>The second pass is to include a line in the end of &lt;firebird-root&gt;/plugins.conf file
     pointing to the plugin:
 
       <programlisting>include &lt;fbjava-root&gt;/conf/fbjava.conf</programlisting>
+    </para>
+
+    <para>The third pass is to define the environment variable JAVA_HOME pointing to the home directory
+    of a JDK or JRE installation. FB/Java requires a Java 8 platform.
     </para>
 
     <para>FB/Java can also be installed in the client making possible to use fbjava-deployer
