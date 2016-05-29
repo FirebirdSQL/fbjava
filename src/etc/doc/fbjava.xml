@@ -45,7 +45,8 @@
     </para>
 
     <para>The third pass is to define the environment variable JAVA_HOME pointing to the home directory
-    of a JDK or JRE installation. FB/Java requires a Java 8 platform.
+    of a JDK or JRE installation. FB/Java requires a Java 8 platform of the same architecture
+    (32 or 64 bit) of Firebird.
     </para>
 
     <para>FB/Java can also be installed in the client making possible to use fbjava-deployer
