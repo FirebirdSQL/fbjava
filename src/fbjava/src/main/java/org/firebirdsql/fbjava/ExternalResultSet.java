@@ -36,5 +36,7 @@ public interface ExternalResultSet
 	/**
 	 * Called by Firebird after fetched all rows from the ExternalResultSet.
 	 */
-	public void close();
+	public default void close()
+	{
+	}
 }
