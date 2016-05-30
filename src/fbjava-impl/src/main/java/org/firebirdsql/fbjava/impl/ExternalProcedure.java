@@ -72,9 +72,13 @@ final class ExternalProcedure implements IExternalProcedureIntf
 			Object[] inOut = new Object[inCount + outCount];
 			Object[] inOut2 = new Object[inCount + outCount];
 
-			try (InternalContext internalContext = InternalContext.create(status, context, routine,
-					new ValuesImpl(inOut, inCount),
-					new ValuesImpl(inOut, inCount, outCount)))
+			boolean closeContext = true;
+
+			InternalContext internalContext = InternalContext.create(status, context, routine,
+				new ValuesImpl(inOut, inCount),
+				new ValuesImpl(inOut, inCount, outCount));
+
+			try
 			{
 				routine.getFromMessage(status, context, routine.inputParameters, inMsg, inOut);
 
@@ -104,12 +108,19 @@ final class ExternalProcedure implements IExternalProcedureIntf
 						{
 							try
 							{
-								routine.engine.runInClassLoader(status, context,
-									routine.method.getDeclaringClass().getName(), routine.method.getName(),
-									() -> {
-										rs.close();
-										return null;
-									});
+								try
+								{
+									routine.engine.runInClassLoader(status, context,
+										routine.method.getDeclaringClass().getName(), routine.method.getName(),
+										() -> {
+											rs.close();
+											return null;
+										});
+								}
+								finally
+								{
+									internalContext.close();
+								}
 							}
 							catch (Throwable t)
 							{
@@ -153,8 +164,16 @@ final class ExternalProcedure implements IExternalProcedureIntf
 
 					ExtResultSet wrapped = new ExtResultSet();
 					wrapped.wrapper = JnaUtil.pin(new IExternalResultSet(wrapped));
+
+					closeContext = false;
+
 					return wrapped.wrapper;
 				}
+			}
+			finally
+			{
+				if (closeContext)
+					internalContext.close();
 			}
 		}
 		catch (InvocationTargetException e)

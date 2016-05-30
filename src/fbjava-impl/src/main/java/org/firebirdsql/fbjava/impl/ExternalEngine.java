@@ -77,8 +77,8 @@ final class ExternalEngine implements IExternalEngineIntf
 {
 	private static final IEncodingFactory encodingFactory = EncodingFactory.getPlatformDefault();
 	private static Map<String, SharedData> sharedDataMap = new ConcurrentHashMap<>();
-	private static Map<Integer, Pair<String, Integer>> fbTypeNames;
-	private static Map<Class<?>, DataType> dataTypesByClass;
+	static Map<Integer, Pair<String, Integer>> fbTypeNames;
+	static Map<Class<?>, DataType> dataTypesByClass;
 	private static Map<String, Class<?>> javaClassesByName;
 	private static Map<Integer, DataType> defaultDataTypes;
 	private IExternalEngine wrapper;
@@ -1257,7 +1257,7 @@ final class ExternalEngine implements IExternalEngineIntf
 						{
 							assert outCount == 1;
 
-							if (paramTypes.size() != inCount)
+							if (paramTypes.size() != inCount && paramTypes.size() != 0)
 							{
 								throw new FbException(String.format("Number of parameters (%d) in the Java method " +
 									"does not match the number of parameters (%d) in the function declaration",
@@ -1283,7 +1283,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 						case PROCEDURE:
 						{
-							if (paramTypes.size() != inCount + outCount)
+							if (paramTypes.size() != inCount + outCount && paramTypes.size() != 0)
 							{
 								throw new FbException(String.format("Number of parameters (%d) in the Java method " +
 									"does not match the number of parameters (%d + %d) in the procedure declaration",
@@ -1327,18 +1327,6 @@ final class ExternalEngine implements IExternalEngineIntf
 								IMessageMetadata triggerMetadata = metadata.getTriggerMetadata(status);
 								try
 								{
-									int count = triggerMetadata.getCount(status);
-
-									for (int index = 0; index < count; ++index)
-									{
-										Parameter parameter = new Parameter(
-											dataTypesByClass.get(Object.class), Object.class);
-										parameter.name = triggerMetadata.getField(status, index);
-										parameter.type = fbTypeNames.get(triggerMetadata.getType(status, index));
-
-										routine.inputParameters.add(parameter);
-									}
-
 									routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
 										triggerMetadata, inBuilder);
 								}

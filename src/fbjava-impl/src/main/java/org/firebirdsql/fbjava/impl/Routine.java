@@ -55,6 +55,7 @@ final class Routine
 	final List<Parameter> outputParameters = new ArrayList<>();
 	final ValuesMetadataImpl inputMetadata = new ValuesMetadataImpl();
 	final ValuesMetadataImpl outputMetadata = new ValuesMetadataImpl();
+	boolean generic;
 
 	Routine(IStatus status, IRoutineMetadata metadata, ExternalEngine engine, Type type) throws FbException
 	{
@@ -92,6 +93,23 @@ final class Routine
 	void setupParameters(IStatus status, List<Parameter> parameters, ValuesMetadataImpl valuesMetadata,
 		IMessageMetadata metadata, IMetadataBuilder builder) throws FbException
 	{
+		int count = metadata.getCount(status);
+
+		if (parameters.size() == 0 && count != 0)
+		{
+			for (int index = 0; index < count; ++index)
+			{
+				Parameter parameter = new Parameter(
+					ExternalEngine.dataTypesByClass.get(Object.class), Object.class);
+				parameter.name = metadata.getField(status, index);
+				parameter.type = ExternalEngine.fbTypeNames.get(metadata.getType(status, index));
+
+				parameters.add(parameter);
+			}
+
+			generic = true;
+		}
+
 		for (int i = 0; i < parameters.size(); ++i)
 		{
 			Parameter parameter = parameters.get(i);
@@ -154,7 +172,7 @@ final class Routine
 			() -> {
 				try
 				{
-					return method.invoke(null, args);
+					return method.invoke(null, (generic ? null : args));
 				}
 				catch (Exception | ExceptionInInitializerError t)
 				{

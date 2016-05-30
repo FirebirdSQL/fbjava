@@ -18,6 +18,7 @@
  */
 package example;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 
 import org.firebirdsql.fbjava.CallableRoutineContext;
@@ -52,11 +53,6 @@ public class Procedures
 			{
 				return ++o[0] <= i + 5;
 			}
-
-			@Override
-			public void close()
-			{
-			}
 		};
 	}
 
@@ -69,11 +65,6 @@ public class Procedures
 			public boolean fetch() throws Exception
 			{
 				return ++o[0] <= end;
-			}
-
-			@Override
-			public void close()
-			{
 			}
 		};
 	}
@@ -90,11 +81,6 @@ public class Procedures
 					throw new Exception("Can't go beyond 10.");
 
 				return ++o[0] <= end;
-			}
-
-			@Override
-			public void close()
-			{
 			}
 		};
 	}
@@ -115,11 +101,6 @@ public class Procedures
 				}
 				else
 					return false;
-			}
-
-			@Override
-			public void close()
-			{
 			}
 		};
 	}
@@ -172,5 +153,24 @@ public class Procedures
 			throw new RuntimeException("Error");
 
 		output.set(1, Functions.getValues(inputMetadata, input) + " / " + Functions.getValues(outputMetadata, output));
+	}
+
+	public static ExternalResultSet p12()
+	{
+		ProcedureContext context = ProcedureContext.get();
+		Values outValues = context.getOutputValues();
+
+		BigDecimal i = (BigDecimal) context.getInputValues().get(1);
+		outValues.set(1, i);
+
+		return new ExternalResultSet() {
+			@Override
+			public boolean fetch() throws Exception
+			{
+				BigDecimal o = ((BigDecimal) outValues.get(1)).add(BigDecimal.ONE);
+				outValues.set(1, o);
+				return o.subtract(i).intValue() <= 5;
+			}
+		};
 	}
 }
