@@ -30,11 +30,11 @@ public interface Values
 	 * Gets the value for a given index.
 	 * Index starts from 1.
 	 */
-	public Object get(int index);
+	public Object getObject(int index);
 
 	/**
 	 * Sets the value for a given index.
 	 * Index starts from 1.
 	 */
-	public Object set(int index, Object value);
+	public Object setObject(int index, Object value);
 }

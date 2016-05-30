@@ -40,7 +40,7 @@ final class ValuesImpl implements Values
 	}
 
 	@Override
-	public Object get(int index)
+	public Object getObject(int index)
 	{
 		//// TODO: read only values
 
@@ -57,9 +57,9 @@ final class ValuesImpl implements Values
 	}
 
 	@Override
-	public Object set(int index, Object value)
+	public Object setObject(int index, Object value)
 	{
-		Object oldValue = get(index);
+		Object oldValue = getObject(index);
 
 		if (outCount == -1)
 		{

@@ -45,8 +45,8 @@ public class Triggers
 			for (int i = 1; i <= count; ++i)
 			{
 				System.out.println(">>> " + i + ", " + fieldsMetadata.getName(i) + ", " +
-					(oldValues == null ? null : oldValues.get(i)) + ", " +
-					(newValues == null ? null : newValues.get(i)));
+					(oldValues == null ? null : oldValues.getObject(i)) + ", " +
+					(newValues == null ? null : newValues.getObject(i)));
 
 				/***
 				if (newValues != null)

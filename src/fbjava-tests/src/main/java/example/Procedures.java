@@ -139,20 +139,21 @@ public class Procedures
 		Values input = context.getInputValues();
 		Values output = context.getOutputValues();
 
-		if (o1[0] != output.get(1))
+		if (o1[0] != output.getObject(1))
 			throw new RuntimeException("Error");
 
 		o1[0] = "a";
 
-		if (o1[0] != output.get(1))
+		if (o1[0] != output.getObject(1))
 			throw new RuntimeException("Error");
 
-		output.set(1, "b");
+		output.setObject(1, "b");
 
-		if (o1[0] != output.get(1))
+		if (o1[0] != output.getObject(1))
 			throw new RuntimeException("Error");
 
-		output.set(1, Functions.getValues(inputMetadata, input) + " / " + Functions.getValues(outputMetadata, output));
+		output.setObject(1,
+			Functions.getValues(inputMetadata, input) + " / " + Functions.getValues(outputMetadata, output));
 	}
 
 	public static ExternalResultSet p12()
@@ -160,15 +161,15 @@ public class Procedures
 		ProcedureContext context = ProcedureContext.get();
 		Values outValues = context.getOutputValues();
 
-		BigDecimal i = (BigDecimal) context.getInputValues().get(1);
-		outValues.set(1, i);
+		BigDecimal i = (BigDecimal) context.getInputValues().getObject(1);
+		outValues.setObject(1, i);
 
 		return new ExternalResultSet() {
 			@Override
 			public boolean fetch() throws Exception
 			{
-				BigDecimal o = ((BigDecimal) outValues.get(1)).add(BigDecimal.ONE);
-				outValues.set(1, o);
+				BigDecimal o = ((BigDecimal) outValues.getObject(1)).add(BigDecimal.ONE);
+				outValues.setObject(1, o);
 				return o.subtract(i).intValue() <= 5;
 			}
 		};

@@ -319,7 +319,7 @@ public class Functions
 			if (i != 1)
 				sb.append(", ");
 
-			sb.append(values.get(i));
+			sb.append(values.getObject(i));
 		}
 
 		return sb.toString();
