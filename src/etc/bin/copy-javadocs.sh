@@ -10,4 +10,4 @@ fi
 BASE_DIR=$THIS_DIR/../../..
 
 rm -rf $BASE_DIR/apidocs
-cp -rf $BASE_DIR/src/fbjava/target/apidocs $BASE_DIR
+cp -rf $BASE_DIR/src/fbjava/target/site/apidocs $BASE_DIR
