@@ -176,7 +176,8 @@ final class Routine
 				}
 				catch (Exception | ExceptionInInitializerError t)
 				{
-					throw t.getCause();
+					Throwable cause = t.getCause();
+					throw cause == null ? t : cause;
 				}
 			});
 	}
