@@ -1,0 +1,78 @@
+=================================
+   Example project for FB/Java
+=================================
+
+Prerequisites
+=============
+
+Java SE Development Kit 8 (http://java.sun.com/javase/downloads/index.jsp) [may work with JRE]
+Apache Maven (http://maven.apache.org)
+
+
+Preparing
+=========
+
+Make sure JAVA_HOME is correctly defined and points to a Java of the same architecture (32 or 64
+bit) of Firebird.
+
+Set FIREBIRD environment variable.
+
+Set FBJAVA_ROOT environment variable.
+
+Set ISC_USER and ISC_PASSWORD.
+
+Go to this example's root directory.
+
+Run mvn package
+(If you're new to Maven, it's normal that it will start downloading a lot of files on the first run)
+
+Run util/createdb.{sh,bat} script.
+
+Optionally create a database named employee in PostgreSQL with user name postgres and password
+postgres.
+
+Open the postgres employee database, create this table and insert some records.
+    create table employee (id integer, name varchar(60));
+
+
+Testing
+=======
+
+Connect to db.fdb. Some things to play with:
+
+-- Lets see what Java says about our OS name, directly calling a standard method:
+select get_system_property('os.name') from rdb$database;
+
+-- Lets call a method that we created:
+select regex_replace('foo', '123 foo 456', 'bar') from rdb$database;
+
+-- INSERT/UPDATE/DELETE on the employee table. All actions will be logged in db.log file.
+insert into employee values (1, 'Juliet Burke');
+insert into employee values (2, 'Kate Austen');
+insert into employee values (3, 'John Locke');
+
+-- This is dumb example, but you may use same concept to make cross database queries.
+select * from employee_local;
+
+-- This is same concept and implementation, but read data from the postgres database!
+select * from employee_pgsql;
+
+-- You can now open util/code.sql and see how the postgres query is created. Create another SP based
+-- on a Firebird database just replacing jdbc:postgresql:employee|postgres|postgres by
+-- jdbc:firebirdsql:database|user|password
+
+-- After change .java files, run mvn package and util/replace-jar.{sh,bat} script.
+
+-- Now you can do queries with multiple external datasources, of different DBMSs!
+
+select * from employee_local
+union all
+select * from employee_pgsql;
+
+select *
+  from employee_local el
+  join employee_pgsql ep
+    on ep.id = el.id;
+
+insert into employee
+  select * from employee_pgsql;

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<appender name="R" class="ch.qos.logback.core.FileAppender">
+		<File>${basedir}/db.log</File>
+
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>%d{yyyy-MM-dd HH:mm:ss},%p %m%n</pattern>
+		</encoder>
+	</appender>
+
+	<logger name="root" level="INFO">
+		<appender-ref ref="R" />
+	</logger>
+</configuration>
