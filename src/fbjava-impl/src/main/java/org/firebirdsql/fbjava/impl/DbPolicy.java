@@ -53,6 +53,7 @@ import org.firebirdsql.jdbc.FBConnection;
  */
 final class DbPolicy extends Policy
 {
+	private static final boolean IS_WINDOWS = System.getProperty("os.name").startsWith("Windows");
 	private static int count;
 	private static String securityDatabase;
 	private static FBConnection securityDb;
@@ -90,7 +91,8 @@ final class DbPolicy extends Policy
 					"    on pg.id = pgg.permission_group\n" +
 					"  join permission p\n" +
 					"    on p.permission_group = pg.id\n" +
-					"  where cast(? as varchar(1024)) similar to pgg.database_pattern escape '&' and\n" +
+					"  where cast(? as varchar(1024)) similar to " + windowsUpper("pgg.database_pattern") +
+					"          escape '&' and\n" +
 					"        ((pgg.grantee_type = 'USER' and\n" +
 					"          cast(? as varchar(512)) similar to pgg.grantee_pattern escape '&') or\n" +
 					"         (pgg.grantee_type = 'ROLE' and\n" +
@@ -249,5 +251,10 @@ final class DbPolicy extends Policy
 			{
 			}
 		}
+	}
+
+	private static String windowsUpper(String s)
+	{
+		return IS_WINDOWS ? "upper(" + s + ")" : s;
 	}
 }

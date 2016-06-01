@@ -19,8 +19,6 @@ Set FIREBIRD environment variable.
 
 Set FBJAVA_ROOT environment variable.
 
-Set ISC_USER and ISC_PASSWORD.
-
 Go to this example's root directory.
 
 Run mvn package
