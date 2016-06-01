@@ -42,19 +42,21 @@ import org.firebirdsql.jdbc.FBConnection;
  */
 final class DbClassLoader extends URLClassLoader
 {
+	private final URL contextUrl;
 	String databaseName;
 	private FBConnection connection;
 	CodeSource codeSource;
 	PermissionCollection codeSourcePermission = new Permissions();
 
-	DbClassLoader(String databaseName, URL[] urls, ClassLoader parent)
+	DbClassLoader(String databaseName, URL contextUrl, ClassLoader parent)
 		throws SQLException
 	{
-		super(urls, parent);
+		super(new URL[] {contextUrl}, parent);
 
+		this.contextUrl = contextUrl;
 		this.databaseName = databaseName;
 
-		codeSource = new CodeSource(urls[0], (Certificate[]) null);
+		codeSource = new CodeSource(contextUrl, (Certificate[]) null);
 
 		Properties properties = new Properties();
 		properties.setProperty("isc_dpb_no_db_triggers", "1");
@@ -96,5 +98,26 @@ final class DbClassLoader extends URLClassLoader
 	public Connection getConnection()
 	{
 		return connection;
+	}
+
+	@Override
+	public URL getResource(String name)
+	{
+		URL url = super.getResource(name);
+
+		if (url == null)
+		{
+			try
+			{
+				url = new URL(contextUrl, name);
+				url.openConnection();
+			}
+			catch (Exception e)
+			{
+				url = null;
+			}
+		}
+
+		return url;
 	}
 }

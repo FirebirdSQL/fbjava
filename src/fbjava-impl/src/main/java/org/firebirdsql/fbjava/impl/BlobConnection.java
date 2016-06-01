@@ -42,143 +42,71 @@ import org.firebirdsql.logging.LoggerFactory;
 final class BlobConnection extends URLConnection
 {
 	private static final Logger log = LoggerFactory.getLogger(BlobConnection.class);
+	private ByteArrayOutputStream bout;
 
-	public BlobConnection(URL url)
+	public BlobConnection(URL url) throws IOException
 	{
 		super(url);
+
+		connect();
 	}
 
 	@Override
 	public void connect() throws IOException
 	{
-	}
+		if (bout != null)
+			return;
 
-	@Override
-	public InputStream getInputStream() throws IOException
-	{
 		try
 		{
 			final DbClassLoader classLoader = (DbClassLoader) Thread.currentThread().getContextClassLoader();
 			final Connection conn = classLoader.getConnection();
-			final PreparedStatement stmt = conn.prepareStatement("select content from sqlj.read_jar(?)");
-			ResultSet rs = null;
 
-			try
+			try (PreparedStatement stmt = conn.prepareStatement("select content from sqlj.read_jar(?)"))
 			{
 				String urlStr = url.toString().substring(8);	// "fbjava:/"
 				stmt.setString(1, urlStr);
-				final ResultSet finalRs = rs = stmt.executeQuery();
 
-				if (rs.next())
+				try (ResultSet rs = stmt.executeQuery())
 				{
-					return new InputStream() {
-						private InputStream inner = finalRs.getBinaryStream(1);
-
-						@Override
-						public int read() throws IOException
-						{
-							return inner.read();
-						}
-
-						@Override
-						public int read(byte[] b, int off, int len) throws IOException
-						{
-							return inner.read(b, off, len);
-						}
-
-						@Override
-						public long skip(long n) throws IOException
-						{
-							return inner.skip(n);
-						}
-
-						@Override
-						public int available() throws IOException
-						{
-							return inner.available();
-						}
-
-						@Override
-						public void close() throws IOException
-						{
-							if (inner == null)
-								return;
-
-							try
-							{
-								inner.close();
-								try
-								{
-									finalRs.close();
-									stmt.close();
-								}
-								catch (SQLException e)
-								{
-									throw new IOException(e);
-								}
-							}
-							finally
-							{
-								inner = null;
-							}
-						}
-
-						@Override
-						public void mark(int readlimit)
-						{
-							inner.mark(readlimit);
-						}
-
-						@Override
-						public void reset() throws IOException
-						{
-							inner.reset();
-						}
-
-						@Override
-						public boolean markSupported()
-						{
-							return inner.markSupported();
-						}
-					};
-				}
-				else
-				{
-					rs.close();
-					stmt.close();
-
-					try (PreparedStatement stmt2 = conn.prepareStatement("select child from sqlj.list_dir(?)"))
+					if (rs.next())
 					{
-						stmt2.setString(1, urlStr);
+						InputStream in = rs.getBinaryStream(1);
+						bout = new ByteArrayOutputStream();
 
-						try (ResultSet rs2 = stmt2.executeQuery())
+						byte[] buffer = new byte[8192];
+						int count;
+
+						while ((count = in.read(buffer)) != -1)
+							bout.write(buffer, 0, count);
+					}
+					else
+					{
+						try (PreparedStatement stmt2 = conn.prepareStatement("select child from sqlj.list_dir(?)"))
 						{
-							if (rs2.next())
+							stmt2.setString(1, urlStr);
+
+							try (ResultSet rs2 = stmt2.executeQuery())
 							{
-								ByteArrayOutputStream out = new ByteArrayOutputStream();
-								PrintWriter writer = new PrintWriter(out);
-
-								do
+								if (rs2.next())
 								{
-									writer.println(rs2.getString(1));
-								} while (rs2.next());
+									bout = new ByteArrayOutputStream();
+									PrintWriter writer = new PrintWriter(bout);
 
-								writer.close();
+									do
+									{
+										writer.println(rs2.getString(1));
+									} while (rs2.next());
 
-								return new ByteArrayInputStream(out.toByteArray());
+									writer.flush();
+								}
 							}
 						}
-					}
 
-					throw new IOException(String.format("Resource '%s' has not been found on the database.", url));
+						throw new IOException(
+							String.format("Resource '%s' has not been found on the database.", url));
+					}
 				}
-			}
-			catch (SQLException e)
-			{
-				if (rs != null)
-					rs.close();
-				stmt.close();
-				throw e;
 			}
 		}
 		catch (SQLException e)
@@ -186,5 +114,11 @@ final class BlobConnection extends URLConnection
 			log.error("Error retrieving resource or class from the database", e);
 			throw new IOException(e);
 		}
+	}
+
+	@Override
+	public InputStream getInputStream() throws IOException
+	{
+		return new ByteArrayInputStream(bout.toByteArray());
 	}
 }

@@ -104,7 +104,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 		SharedData(String databaseName) throws SQLException, MalformedURLException
 		{
-			URL url = new URL(null, "fbjava:/", new URLStreamHandler() {
+			URL contextUrl = new URL(null, "fbjava:/", new URLStreamHandler() {
 				@Override
 				protected URLConnection openConnection(URL url) throws IOException
 				{
@@ -112,7 +112,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				}
 			});
 
-			classLoader = new DbClassLoader(databaseName, new URL[] {url}, getClass().getClassLoader());
+			classLoader = new DbClassLoader(databaseName, contextUrl, getClass().getClassLoader());
 		}
 
 		void openAttachment(IStatus status, IExternalContext context)
