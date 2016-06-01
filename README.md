@@ -1,8 +1,8 @@
 # FB/Java plugin for Firebird
 
-Manual: https://rawgit.com/FirebirdSQL/fbjava/master/src/etc/doc/fbjava.pdf
+Manual: https://rawgit.com/FirebirdSQL/fbjava/1.0.0-alpha-1/src/etc/doc/fbjava.pdf
 
-Java Docs: https://rawgit.com/FirebirdSQL/fbjava/master/apidocs/index.html
+Java Docs: https://rawgit.com/FirebirdSQL/fbjava/1.0.0-alpha-1/apidocs/index.html
 
 Use this setting as maven repository:
 
