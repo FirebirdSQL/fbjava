@@ -34,7 +34,8 @@ mkdir -p \
 	$TARGET_DIR/jar \
 	$TARGET_DIR/docs \
 	$TARGET_DIR/lib \
-	$TARGET_DIR/scripts
+	$TARGET_DIR/scripts \
+	$TARGET_DIR/examples
 
 cp $BASE_DIR/src/etc/bin/setenv.$SHELL_EXT $TARGET_DIR/bin
 cp $BASE_DIR/src/etc/bin/fbjava-deployer.$SHELL_EXT $TARGET_DIR/bin
@@ -47,6 +48,7 @@ cp $BASE_DIR/output/$CONFIG/lib/libfbjava.$SHRLIB_EXT $TARGET_DIR/lib
 cp $BASE_DIR/src/fbjava-impl/src/main/resources/org/firebirdsql/fbjava/*.sql $TARGET_DIR/scripts
 cp $BASE_DIR/src/etc/conf/fbjava.conf $TARGET_DIR/conf
 cp $BASE_DIR/src/etc/scripts/java-security.sql $TARGET_DIR/scripts
+cp -r $BASE_DIR/examples $TARGET_DIR
 
 cd $TARGET_DIR/conf/
 

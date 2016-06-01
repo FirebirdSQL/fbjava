@@ -711,9 +711,15 @@ create procedure procGenRows (numRows integer) returns (n integer)
     &lt;fbjava-root&gt;/docs/apidocs</para>
   </section>
 
+  <section id="fbjava-example">
+    <title>Example</title>
+
+    <para>There is an example project in &lt;fbjava-root&gt;/examples/fbjava-example, with
+    instructions in the README file.</para>
+  </section>
+
   <section id="fbjava-known-issues">
     <title>Known issues</title>
-
 
     <itemizedlist spacing="normal">
       <listitem>
