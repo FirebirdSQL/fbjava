@@ -124,7 +124,7 @@
 
       <para>The PERMISSION_GROUP_GRANT table associates PERMISSION_GROUP with Firebird users and
       roles. This association is done by a DATABASE_PATTERN and a GRANTEE_TYPE/GRANTEE_PATTERN.
-      Patterns are SIMILAR TO patterns escaped by the '|' symbol. Pay attention when using special
+      Patterns are SIMILAR TO patterns escaped by the '&amp;' symbol. Pay attention when using special
       SIMILAR TO characters like underline, if they refer to actual database, user or role name
       parts, they need to be escaped. GRANTEE_TYPE defines if GRANTEE_PATTERN refers to a ROLE or
       USER.</para>
@@ -714,7 +714,17 @@ create procedure procGenRows (numRows integer) returns (n integer)
   <section id="fbjava-known-issues">
     <title>Known issues</title>
 
-    <para>In this test version it's not possible to use Jaybird's non-pure-Java connection string
-    protocols like embedded, native and local.</para>
+
+    <itemizedlist spacing="normal">
+      <listitem>
+        <para>In this test version it's not possible to use Jaybird's non-pure-Java connection string
+        protocols like embedded, native and local.</para>
+      </listitem>
+
+      <listitem>
+        <para>Firebird 3.0.0 has a bug with external selectable procedures without input parameters.
+		A workaround is to declare a (dummy integer = 1) parameter.</para>
+      </listitem>
+    </itemizedlist>
   </section>
 </article>
