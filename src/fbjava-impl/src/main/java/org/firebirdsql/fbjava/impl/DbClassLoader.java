@@ -59,6 +59,7 @@ final class DbClassLoader extends URLClassLoader
 		codeSource = new CodeSource(contextUrl, (Certificate[]) null);
 
 		Properties properties = new Properties();
+		properties.setProperty("user", "SYSDBA");
 		properties.setProperty("isc_dpb_no_db_triggers", "1");
 
 		connection = (FBConnection) DriverManager.getConnection(
