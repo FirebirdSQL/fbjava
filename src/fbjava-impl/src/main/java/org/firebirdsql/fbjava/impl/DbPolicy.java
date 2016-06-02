@@ -74,7 +74,7 @@ final class DbPolicy extends Policy
 				assert securityDb == null;
 
 				securityDb = (FBConnection) DriverManager.getConnection(
-					"jdbc:firebirdsql:embedded:" + securityDatabase + "?charSet=UTF-8");
+					"jdbc:firebirdsql:embedded:" + securityDatabase + "?charSet=UTF-8", "SYSDBA", null);
 				securityDb.setAutoCommit(false);
 				securityDb.setReadOnly(true);
 
