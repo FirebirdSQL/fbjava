@@ -61,6 +61,79 @@ static const char DEFAULT_PATH_SEP = '/';
 //------------------------------------------------------------------------------
 
 
+template <typename T>
+class FbAuto
+{
+public:
+	FbAuto(T* aObj)
+		: obj(aObj)
+	{
+	}
+
+	~FbAuto()
+	{
+		release();
+	}
+
+public:
+	FbAuto& operator= (T* o)
+	{
+		release();
+		obj = o;
+		return *this;
+	}
+
+	operator T*()
+	{
+		return obj;
+	}
+
+	operator const T*() const
+	{
+		return obj;
+	}
+
+	bool operator !() const
+	{
+		return !obj;
+	}
+
+	T* operator->()
+	{
+		return obj;
+	}
+
+	const T* operator->() const
+	{
+		return obj;
+	}
+
+private:
+	void release()
+	{
+		if (obj)
+		{
+			release(obj);
+			obj = NULL;
+		}
+	}
+
+	void release(IReferenceCounted* o)
+	{
+		o->release();
+	}
+
+	void release(IDisposable* o)
+	{
+		o->dispose();
+	}
+
+private:
+	T* obj;
+};
+
+//--------------------------------------
+
 class DynLibrary
 {
 public:
@@ -261,6 +334,27 @@ static jmethodID getMethodID(JNIEnv* env, jclass cls, const char* name, const ch
 
 static void init()
 {
+	const char* javaHome = NULL;
+
+	try
+	{
+		FbAuto<IStatus> status(master->getStatus());
+		ThrowStatusWrapper st(status);
+
+		if (IConfigManager* configManager = master->getConfigManager())
+		{
+			if (FbAuto<IConfig> config = configManager->getPluginConfig("JAVA"))
+			{
+				if (FbAuto<IConfigEntry> entry = config->find(&st, "JavaHome"))
+					javaHome = entry->getValue();
+			}
+		}
+	}
+	catch (const FbException& e)
+	{
+		throw runtime_error("Error looking for JavaHome in the config file.");
+	}
+
 #ifdef WIN32
 	string libFile;
 
@@ -281,7 +375,8 @@ static void init()
 	libDir += DEFAULT_PATH_SEP;
 	libDir += "../jar";
 
-	const char* javaHome = getenv("JAVA_HOME");
+	if (!javaHome)
+		javaHome = getenv("JAVA_HOME");
 
 	if (!javaHome)
 		throw runtime_error("JAVA_HOME environment variable is not defined.");
@@ -313,15 +408,15 @@ static void init()
 	// engine in Java or if any other plugin has loaded it. If it was already loaded, we
 	// don't do anything with the configured options.
 	jsize jvmCount = 0;
-	jint status = getCreatedJavaVMs(&jvm, 1, &jvmCount);
+	jint jvmStatus = getCreatedJavaVMs(&jvm, 1, &jvmCount);
 
 	if (jvmCount == 0)
 	{
 		// There is no JVM. Let's create one.
 		JNIEnv* dummyEnv;
-		status = createJavaVM(&jvm, (void**) &dummyEnv, &vmArgs);
+		jvmStatus = createJavaVM(&jvm, (void**) &dummyEnv, &vmArgs);
 
-		if (status != 0)
+		if (jvmStatus != 0)
 			throw runtime_error("Error creating JVM.");
 	}
 
@@ -433,7 +528,7 @@ extern "C" void /*FB_EXPORTED*/ FB_PLUGIN_ENTRY_POINT(IMaster* master)
 	{
 		init();
 	}
-	catch (exception& e)
+	catch (const exception& e)
 	{
 		//// FIXME: how to report an error here?
 		fprintf(stderr, "%s\n", e.what());
