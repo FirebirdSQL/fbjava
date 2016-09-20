@@ -30,6 +30,9 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <list>
+#include <iostream>
+#include <fstream>
 
 #ifdef WIN32
 #include <windows.h>
@@ -202,6 +205,7 @@ static IMaster* master;
 
 //--------------------------------------
 
+std::string trim(const std::string &s);
 
 static string findJvmLibrary(const char* javaHome)
 {
@@ -335,6 +339,7 @@ static jmethodID getMethodID(JNIEnv* env, jclass cls, const char* name, const ch
 static void init()
 {
 	const char* javaHome = NULL;
+	std::list<string> jvmArgs;
 
 	try
 	{
@@ -347,6 +352,21 @@ static void init()
 			{
 				if (FbAuto<IConfigEntry> entry = config->find(&st, "JavaHome"))
 					javaHome = entry->getValue();
+
+				if (FbAuto<IConfigEntry> entry = config->find(&st, "JvmArgsFile"))
+				{
+					std::ifstream input(entry->getValue());
+					std::string line;
+
+					while(std::getline(input, line))
+					{
+						line = trim(line);
+						if (line.size() && line[0] != '#')
+						{
+							jvmArgs.push_back(line);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -399,7 +419,14 @@ static void init()
 	JavaVMInitArgs vmArgs;
 	memset(&vmArgs, 0, sizeof(vmArgs));
 	vmArgs.version = JNI_VERSION_1_4;
-	vmArgs.nOptions = 0;
+	vmArgs.nOptions = jvmArgs.size();
+	vmArgs.options = new JavaVMOption[vmArgs.nOptions];
+	std::list<string>::iterator it = jvmArgs.begin();
+	for (int i = 0; it != jvmArgs.end(); i++, it++)
+	{
+		JavaVMOption op = {(char*)it->c_str(), NULL};
+		vmArgs.options[i] = op;
+	}
 	vmArgs.ignoreUnrecognized = JNI_FALSE;
 
 	JavaVM* jvm = NULL;
@@ -545,3 +572,16 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, void*)
 	return TRUE;
 }
 #endif
+
+std::string trim(const std::string &s)
+{
+	std::string::const_iterator it = s.begin();
+	while (it != s.end() && isspace(*it))
+		it++;
+
+	std::string::const_reverse_iterator rit = s.rbegin();
+	while (rit.base() != it && isspace(*rit))
+		rit++;
+
+	return std::string(it, rit.base());
+}
