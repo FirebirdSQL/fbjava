@@ -34,6 +34,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
+import java.util.Properties;
 
 
 public class Deployer
@@ -86,7 +87,16 @@ public class Deployer
 		if (database == null)
 			throw new Exception("Option --database must be present");
 
-		conn = DriverManager.getConnection("jdbc:firebirdsql:" + database, user, password);
+		Properties properties = new Properties();
+		properties.setProperty("encoding", "utf8");
+
+		if (user != null)
+			properties.setProperty("user", user);
+
+		if (password != null)
+			properties.setProperty("password", password);
+
+		conn = DriverManager.getConnection("jdbc:firebirdsql:" + database, properties);
 		conn.setAutoCommit(false);
 	}
 

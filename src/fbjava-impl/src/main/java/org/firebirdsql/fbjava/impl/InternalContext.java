@@ -21,6 +21,7 @@ package org.firebirdsql.fbjava.impl;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IAttachment;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
@@ -131,7 +132,12 @@ final class InternalContext implements AutoCloseable
 	public Connection getConnection() throws SQLException
 	{
 		if (connection == null)
-			connection = DriverManager.getConnection("jdbc:default:connection");
+		{
+			Properties properties = new Properties();
+			properties.setProperty("encoding", "utf8");
+
+			connection = DriverManager.getConnection("jdbc:default:connection", properties);
+		}
 
 		return connection;
 	}
