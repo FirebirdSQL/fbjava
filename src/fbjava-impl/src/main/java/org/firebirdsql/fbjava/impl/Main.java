@@ -40,6 +40,11 @@ final class Main
 		master = library.fb_get_master_interface();
 		util = master.getUtilInterface();
 
+		// We assume the plugin is used with a UTF-8 connection charset, so
+		// set the Jaybird 3 default charset and disable logging.
+		System.setProperty("org.firebirdsql.jdbc.disableLogging", "true");
+		System.setProperty("org.firebirdsql.jdbc.defaultConnectionEncoding", "utf8");
+
 		// Load Jaybird and register jdbc:default:connection url.
 		Class.forName("org.firebirdsql.jdbc.FBDriver");
 
