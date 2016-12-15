@@ -19,8 +19,8 @@
 		<maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
 		<maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
 
-		<jaybird.version>3.0.0-beta-1</jaybird.version>
-		<jna.version>4.2.1</jna.version>
+		<jaybird.version>3.0.0-SNAPSHOT</jaybird.version>
+		<jna.version>4.2.2</jna.version>
 	</properties>
 
 	<dependencyManagement>
