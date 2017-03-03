@@ -1,0 +1,9 @@
+#-Xdebug
+#-Xnoagent
+#-Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n
+#-Djnidispatch.preserve=true
+#-Djava.compiler=NONE
+
+#-Djna.debug_load=true
+#-Djna.debug_load.jna=true
+#-Djna.dump_memory=true

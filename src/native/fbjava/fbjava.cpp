@@ -21,6 +21,9 @@
  */
 
 #include "firebird/Interface.h"
+#include <fstream>
+#include <iostream>
+#include <list>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -42,6 +45,9 @@
 using namespace Firebird;
 using std::auto_ptr;
 using std::exception;
+using std::getline;
+using std::ifstream;
+using std::list;
 using std::runtime_error;
 using std::string;
 using std::vector;
@@ -191,6 +197,7 @@ static jclass findClass(JNIEnv* env, const char* name, bool createGlobalRef);
 static jmethodID getStaticMethodID(JNIEnv* env, jclass cls, const char* name, const char* signature);
 static jmethodID getMethodID(JNIEnv* env, jclass cls, const char* name, const char* signature);
 static void init();
+string trim(const string& s);
 
 
 //--------------------------------------
@@ -335,6 +342,7 @@ static jmethodID getMethodID(JNIEnv* env, jclass cls, const char* name, const ch
 static void init()
 {
 	const char* javaHome = NULL;
+	list<string> jvmArgs;
 
 	try
 	{
@@ -347,6 +355,20 @@ static void init()
 			{
 				if (FbAuto<IConfigEntry> entry = config->find(&st, "JavaHome"))
 					javaHome = entry->getValue();
+
+				if (FbAuto<IConfigEntry> entry = config->find(&st, "JvmArgsFile"))
+				{
+					ifstream input(entry->getValue());
+					string line;
+
+					while (getline(input, line))
+					{
+						line = trim(line);
+
+						if (!line.empty() && line[0] != '#')
+							jvmArgs.push_back(line);
+					}
+				}
 			}
 		}
 	}
@@ -399,7 +421,16 @@ static void init()
 	JavaVMInitArgs vmArgs;
 	memset(&vmArgs, 0, sizeof(vmArgs));
 	vmArgs.version = JNI_VERSION_1_4;
-	vmArgs.nOptions = 0;
+	vmArgs.nOptions = jvmArgs.size();
+	vmArgs.options = new JavaVMOption[vmArgs.nOptions];
+
+	list<string>::iterator it = jvmArgs.begin();
+	for (unsigned i = 0; it != jvmArgs.end(); ++i, ++it)
+	{
+		JavaVMOption op = {const_cast<char*>(it->c_str()), NULL};
+		vmArgs.options[i] = op;
+	}
+
 	vmArgs.ignoreUnrecognized = JNI_FALSE;
 
 	JavaVM* jvm = NULL;
@@ -517,6 +548,20 @@ static void init()
 
 	env->CallStaticVoidMethod(mainCls, mainInitializeId, nativeLibrary);
 	checkJavaException(env);
+}
+
+
+string trim(const string &s)
+{
+	string::const_iterator it = s.begin();
+	while (it != s.end() && isspace(*it))
+		++it;
+
+	string::const_reverse_iterator rit = s.rbegin();
+	while (rit.base() != it && isspace(*rit))
+		++rit;
+
+	return string(it, rit.base());
 }
 
 
