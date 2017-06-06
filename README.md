@@ -24,3 +24,8 @@ And this setting for the artifact dependency:
 	<scope>provided</scope>
 </dependency>
 ```
+
+## Sponsors
+
+The FB/Java team would like to thank YourKit for providing licenses to their [YourKit Java Profiler](https://www.yourkit.com/java/profiler/). 
+![YourKit](https://www.yourkit.com/images/yklogo.png)
