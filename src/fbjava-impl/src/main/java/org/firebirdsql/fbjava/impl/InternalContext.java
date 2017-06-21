@@ -191,7 +191,7 @@ final class InternalContext implements AutoCloseable
 	@Override
 	public void close() throws Exception
 	{
-		contextDataStack.pop();
+		contextDataStack.pop().close();
 		if (contextDataStack.isEmpty()) {
 			if (connection != null)
 				connection.close();
