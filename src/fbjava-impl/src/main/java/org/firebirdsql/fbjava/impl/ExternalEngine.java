@@ -507,6 +507,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			{
 				builder.setType(status, index, ISCConstants.SQL_SHORT);
 				builder.setScale(status, index, 0);
+				builder.setLength(status, index, 2);
 
 				return new Conversion() {
 					@Override
@@ -540,6 +541,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			{
 				builder.setType(status, index, ISCConstants.SQL_LONG);
 				builder.setScale(status, index, 0);
+				builder.setLength(status, index, 4);
 
 				return new Conversion() {
 					@Override
@@ -573,6 +575,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			{
 				builder.setType(status, index, ISCConstants.SQL_INT64);
 				builder.setScale(status, index, 0);
+				builder.setLength(status, index, 8);
 
 				return new Conversion() {
 					@Override
@@ -605,6 +608,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				IMetadataBuilder builder, int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_FLOAT);
+				builder.setLength(status, index, 4);
 
 				return new Conversion() {
 					@Override
@@ -637,6 +641,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				IMetadataBuilder builder, int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_DOUBLE);
+				builder.setLength(status, index, 8);
 
 				return new Conversion() {
 					@Override
@@ -689,6 +694,7 @@ final class ExternalEngine implements IExternalEngineIntf
 						scale = 0;
 						builder.setType(status, index, type);
 						builder.setScale(status, index, scale);
+						builder.setLength(status, index, 8);
 						break;
 				}
 
@@ -790,6 +796,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				IMetadataBuilder builder, int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_TYPE_DATE);
+				builder.setLength(status, index, 4);
 
 				return new Conversion() {
 					@Override
@@ -829,6 +836,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			{
 				builder.setType(status, index, ISCConstants.SQL_TYPE_TIME);
 				builder.setScale(status, index, 0);
+				builder.setLength(status, index, 4);
 
 				return new Conversion() {
 					@Override
@@ -864,6 +872,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			{
 				builder.setType(status, index, ISCConstants.SQL_TIMESTAMP);
 				builder.setScale(status, index, 0);
+				builder.setLength(status, index, 8);
 
 				return new Conversion() {
 					@Override
@@ -904,6 +913,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				IMetadataBuilder builder, int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_BOOLEAN);
+				builder.setLength(status, index, 1);
 
 				return new Conversion() {
 					@Override
