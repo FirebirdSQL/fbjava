@@ -47,10 +47,11 @@ cp $BASE_DIR/src/etc/doc/fbjava.pdf $TARGET_DIR/docs
 cp $BASE_DIR/output/$CONFIG/lib/libfbjava.$SHRLIB_EXT $TARGET_DIR/lib
 cp $BASE_DIR/src/fbjava-impl/src/main/resources/org/firebirdsql/fbjava/*.sql $TARGET_DIR/scripts
 cp $BASE_DIR/src/etc/conf/fbjava.conf $TARGET_DIR/conf
+cp $BASE_DIR/src/etc/conf/jvm.args $TARGET_DIR/conf
 cp $BASE_DIR/src/etc/scripts/java-security.sql $TARGET_DIR/scripts
 cp -r $BASE_DIR/examples $TARGET_DIR
 
-cd $TARGET_DIR/conf/
+cd $TARGET_DIR/conf
 
 if [ -f java-security.fdb ]; then
 	rm java-security.fdb
