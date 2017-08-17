@@ -23,6 +23,10 @@ fi
 mkdir $TARGET_DIR
 tar xzvf $THIS_DIR/buildroot.tar.gz --directory $TARGET_DIR > /dev/null
 
+# Set file owners
+chown -R root:root $TARGET_DIR
+chown firebird:firebird $TARGET_DIR/conf/java-security.fdb
+
 echo "You must manually add the following line to <firebird-root>/plugins.conf:"
 echo "include $TARGET_DIR/conf/fbjava.conf"
 echo

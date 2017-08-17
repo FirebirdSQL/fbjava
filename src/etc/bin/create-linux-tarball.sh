@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 THIS_DIR=`readlink -f $0`
 THIS_DIR=`dirname $THIS_DIR`
@@ -30,9 +31,8 @@ TARGET_DIR=$TEMP_DIR/$BASE_NAME/temp
 mkdir -p $TARGET_DIR
 cp -rf $SRC_DIR/* $TARGET_DIR
 
-# Set file owners
+# Set all files to be owned by root
 chown -R root:root $TARGET_DIR
-chown firebird:firebird $TARGET_DIR/conf/java-security.fdb
 
 # Set file permissions
 find $TARGET_DIR -type d -exec chmod 755 {} \;
