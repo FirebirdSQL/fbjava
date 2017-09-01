@@ -33,10 +33,15 @@ abstract class DataType
 
 	abstract class Conversion
 	{
-		abstract Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+		abstract Object getFromMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset)
 			throws FbException;
-		abstract void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
-			throws FbException;
+
+		abstract Object getFromMessageUnprivileged(IExternalContext context, Object result) throws FbException;
+
+		abstract Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException;
+
+		abstract void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
+			Object o, Object result) throws FbException;
 	}
 
 	abstract Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,

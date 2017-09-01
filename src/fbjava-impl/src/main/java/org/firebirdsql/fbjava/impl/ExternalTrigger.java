@@ -18,7 +18,6 @@
  */
 package org.firebirdsql.fbjava.impl;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
@@ -73,21 +72,22 @@ final class ExternalTrigger implements IExternalTriggerIntf
 					(oldMsg == null ? null : new ValuesImpl(oldValues, count)),
 					(newMsg == null ? null : new ValuesImpl(newValues, count))))
 			{
-				if (oldMsg != null)
-					routine.getFromMessage(status, context, fieldParameters, oldMsg, oldValues);
+				ThrowableRunnable preExecute = () -> {
+					if (oldMsg != null)
+						routine.getFromMessage(status, context, fieldParameters, oldMsg, oldValues);
 
-				if (newMsg != null)
-					routine.getFromMessage(status, context, fieldParameters, newMsg, newValues);
+					if (newMsg != null)
+						routine.getFromMessage(status, context, fieldParameters, newMsg, newValues);
+				};
 
-				routine.run(status, context, null);
+				ThrowableFunction<Object, Void> postExecute = out -> {
+					if (newMsg != null)
+						routine.putInMessage(status, context, fieldParameters, newValues, 0, newMsg);
+					return null;
+				};
 
-				if (newMsg != null)
-					routine.putInMessage(status, context, fieldParameters, newValues, 0, newMsg);
+				routine.run(status, context, null, preExecute, postExecute);
 			}
-		}
-		catch (InvocationTargetException e)
-		{
-			FbException.rethrow(e.getCause());
 		}
 		catch (Throwable t)
 		{

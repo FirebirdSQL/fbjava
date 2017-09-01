@@ -18,8 +18,6 @@
  */
 package org.firebirdsql.fbjava.impl;
 
-import java.lang.reflect.InvocationTargetException;
-
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalFunction;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalFunctionIntf;
@@ -67,15 +65,24 @@ final class ExternalFunction implements IExternalFunctionIntf
 			try (InternalContext internalContext = InternalContext.create(status, context, routine,
 					new ValuesImpl(in, in.length), null))
 			{
-				routine.getFromMessage(status, context, routine.inputParameters, inMsg, in);
-				Object[] out = {routine.run(status, context, in)};
+				ThrowableRunnable preExecute = () ->
+					routine.getFromMessage(status, context, routine.inputParameters, inMsg, in);
 
-				routine.putInMessage(status, context, routine.outputParameters, out, 0, outMsg);
+				ThrowableFunction<Object, Void> postExecute = out -> {
+					routine.putInMessage(status, context, routine.outputParameters, new Object[] {out}, 0, outMsg);
+					return null;
+				};
+
+				InternalContext oldContext = InternalContext.set(internalContext);
+				try
+				{
+					routine.run(status, context, in, preExecute, postExecute);
+				}
+				finally
+				{
+					InternalContext.set(oldContext);
+				}
 			}
-		}
-		catch (InvocationTargetException e)
-		{
-			FbException.rethrow(e.getCause());
 		}
 		catch (Throwable t)
 		{

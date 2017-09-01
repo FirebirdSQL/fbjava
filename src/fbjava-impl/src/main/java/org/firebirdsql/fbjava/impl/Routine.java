@@ -142,11 +142,33 @@ final class Routine
 		Object[] values) throws FbException
 	{
 		assert values.length <= parameters.size();
+
+		try
+		{
+			engine.doPrivileged(() -> {
+				int i = 0;
+
+				for (Parameter parameter : parameters)
+				{
+					values[i] = parameter.conversion.getFromMessagePrivileged(context, message,
+						parameter.nullOffset, parameter.offset);
+					++i;
+				}
+
+				return null;
+			});
+		}
+		catch (Throwable t)
+		{
+			FbException.rethrow(t);
+		}
+
 		int i = 0;
 
 		for (Parameter parameter : parameters)
 		{
-			values[i] = parameter.conversion.getFromMessage(context, message, parameter.nullOffset, parameter.offset);
+			if (values[i] != null)
+				values[i] = parameter.conversion.getFromMessageUnprivileged(context, values[i]);
 			++i;
 		}
 	}
@@ -158,27 +180,56 @@ final class Routine
 
 		int i = valuesStart;
 
+		Object[] temp = new Object[values.length - valuesStart];
+
 		for (Parameter parameter : parameters)
 		{
 			Object value = values[i];
-			parameter.conversion.putInMessage(context, message, parameter.nullOffset, parameter.offset, value);
+			temp[i - valuesStart] = parameter.conversion.putInMessageUnprivileged(context, value);
 			++i;
+		}
+
+		try
+		{
+			engine.doPrivileged(() -> {
+				int j = valuesStart;
+
+				for (Parameter parameter : parameters)
+				{
+					parameter.conversion.putInMessagePrivileged(context, message, parameter.nullOffset, parameter.offset,
+						values[j], temp[j - valuesStart]);
+					++j;
+				}
+
+				return null;
+			});
+		}
+		catch (Throwable t)
+		{
+			FbException.rethrow(t);
 		}
 	}
 
-	Object run(IStatus status, IExternalContext context, Object[] args) throws Throwable
+	 <T>T run(IStatus status, IExternalContext context, Object[] args, ThrowableRunnable preExecute,
+		ThrowableFunction<Object, T> postExecute) throws Throwable
 	{
 		return engine.runInClassLoader(status, context, method.getDeclaringClass().getName(), method.getName(),
 			() -> {
+				preExecute.run();
+
+				Object ret;
+
 				try
 				{
-					return method.invoke(null, (generic ? null : args));
+					ret = method.invoke(null, (generic ? null : args));
 				}
 				catch (Exception | ExceptionInInitializerError t)
 				{
 					Throwable cause = t.getCause();
 					throw cause == null ? t : cause;
 				}
+
+				return postExecute.apply(ret);
 			});
 	}
 }

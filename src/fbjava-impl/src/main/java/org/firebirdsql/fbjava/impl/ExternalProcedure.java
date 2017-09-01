@@ -19,14 +19,12 @@
 package org.firebirdsql.fbjava.impl;
 
 import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
 
 import org.firebirdsql.fbjava.ExternalResultSet;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalProcedure;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalProcedureIntf;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalResultSet;
-import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalResultSetIntf;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IStatus;
 
 import com.sun.jna.Pointer;
@@ -80,94 +78,45 @@ final class ExternalProcedure implements IExternalProcedureIntf
 
 			try
 			{
-				routine.getFromMessage(status, context, routine.inputParameters, inMsg, inOut);
+				ThrowableRunnable preExecute = () -> {
+					routine.getFromMessage(status, context, routine.inputParameters, inMsg, inOut);
 
-				for (int i = inCount; i < inOut.length; ++i)
-					inOut[i] = Array.newInstance(routine.outputParameters.get(i - inCount).javaClass, 1);
-
-				ExternalResultSet rs = (ExternalResultSet) routine.run(status, context, inOut);
-
-				if (rs == null)
-				{
 					for (int i = inCount; i < inOut.length; ++i)
-						inOut2[i] = Array.get(inOut[i], 0);
+						inOut[i] = Array.newInstance(routine.outputParameters.get(i - inCount).javaClass, 1);
+				};
 
-					routine.putInMessage(status, context, routine.outputParameters, inOut2, inCount, outMsg);
-					return null;
-				}
-				else
-				{
-					//// FIXME: Stack trace filtering is not working fully correct here.
+				ThrowableFunction<Object, IExternalResultSet> postExecute = out -> {
+					ExternalResultSet rs = (ExternalResultSet) out;
 
-					class ExtResultSet implements IExternalResultSetIntf
+					if (rs == null)
 					{
-						private IExternalResultSet wrapper;
+						for (int i = inCount; i < inOut.length; ++i)
+							inOut2[i] = Array.get(inOut[i], 0);
 
-						@Override
-						public void dispose()
-						{
-							try
-							{
-								try
-								{
-									routine.engine.runInClassLoader(status, context,
-										routine.method.getDeclaringClass().getName(), routine.method.getName(),
-										() -> {
-											rs.close();
-											return null;
-										});
-								}
-								finally
-								{
-									internalContext.close();
-								}
-							}
-							catch (Throwable t)
-							{
-								//// TODO: ???
-							}
-
-							JnaUtil.unpin(wrapper);
-						}
-
-						@Override
-						public boolean fetch(IStatus status) throws FbException
-						{
-							//// TODO: batch
-
-							try
-							{
-								return routine.engine.runInClassLoader(status, context,
-									routine.method.getDeclaringClass().getName(), routine.method.getName(),
-									() -> {
-										if (rs.fetch())
-										{
-											for (int i = inCount; i < inOut.length; ++i)
-												inOut2[i] = Array.get(inOut[i], 0);
-
-											routine.putInMessage(status, context, routine.outputParameters,
-												inOut2, inCount, outMsg);
-
-											return true;
-										}
-										else
-											return false;
-									});
-							}
-							catch (Throwable t)
-							{
-								FbException.rethrow(t);
-								return false;
-							}
-						}
+						routine.putInMessage(status, context, routine.outputParameters, inOut2, inCount, outMsg);
+						return null;
 					}
+					else
+					{
+						return ExternalEngine.doPrivileged(() ->
+							ExternalResultSetWrapper.create(routine, context, internalContext, outMsg, rs, inCount, inOut, inOut2)
+						);
+					}
+				};
 
-					ExtResultSet wrapped = new ExtResultSet();
-					wrapped.wrapper = JnaUtil.pin(new IExternalResultSet(wrapped));
+				InternalContext oldContext = InternalContext.set(internalContext);
+				try
+				{
+					IExternalResultSet extResultSet = routine.run(status, context, inOut, preExecute, postExecute);
 
-					closeContext = false;
+					if (extResultSet != null)
+						closeContext = false;
 
-					return wrapped.wrapper;
+					return extResultSet;
+				}
+				finally
+				{
+					InternalContext.set(oldContext);
 				}
 			}
 			finally
@@ -175,11 +124,6 @@ final class ExternalProcedure implements IExternalProcedureIntf
 				if (closeContext)
 					internalContext.close();
 			}
-		}
-		catch (InvocationTargetException e)
-		{
-			FbException.rethrow(e.getCause());
-			return null;
 		}
 		catch (Throwable t)
 		{

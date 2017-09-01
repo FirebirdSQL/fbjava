@@ -29,6 +29,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.security.AccessControlContext;
+import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -186,29 +187,39 @@ final class ExternalEngine implements IExternalEngineIntf
 
 						return new Conversion() {
 							@Override
-							Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
-								throws FbException
+							Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+								int nullOffset, int offset) throws FbException
 							{
 								if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 									return null;
 
-								byte[] bytes = (byte[]) byteConversion.getFromMessage(context, message,
+								return byteConversion.getFromMessagePrivileged(context, message,
 									nullOffset, offset);
-
-								return encoding.decodeFromCharset(bytes);
 							}
 
 							@Override
-							void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
-								Object o) throws FbException
+							Object getFromMessageUnprivileged(IExternalContext context, Object result)
+								throws FbException
+							{
+								return encoding.decodeFromCharset(
+									(byte[]) byteConversion.getFromMessageUnprivileged(context, result));
+							}
+
+							@Override
+							Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException
 							{
 								if (o == null)
-									message.setShort(nullOffset, NULL_FLAG);
-								else
-								{
-									byte[] bytes = encoding.encodeToCharset((String) o);
-									byteConversion.putInMessage(context, message, nullOffset, offset, bytes);
-								}
+									return null;
+
+								byte[] bytes = encoding.encodeToCharset((String) o);
+								return byteConversion.putInMessageUnprivileged(context, bytes);
+							}
+
+							@Override
+							void putInMessagePrivileged(IExternalContext context, Pointer message,
+								int nullOffset, int offset, Object o, Object result) throws FbException
+							{
+								byteConversion.putInMessagePrivileged(context, message, nullOffset, offset, o, result);
 							}
 						};
 					}
@@ -243,31 +254,49 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
 
 						int length = Short.toUnsignedInt(message.getShort(offset));
-						return encoding.decodeFromCharset(message.getByteArray(offset + 2, length));
+						return message.getByteArray(offset + 2, length);
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
-						Object o) throws FbException
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					{
+						return encoding.decodeFromCharset((byte[]) result);
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException
 					{
 						if (o == null)
+							return null;
+
+						byte[] bytes = encoding.encodeToCharset((String) o);
+
+						if (bytes.length > finalLength)
+						{
+							throw new FbException(String.format(
+								"String with length (%d) bytes greater than max expected length (%d).",
+								bytes.length, finalLength));
+						}
+
+						return bytes;
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset, Object o, Object result)
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
-							byte[] bytes = encoding.encodeToCharset((String) o);
-
-							if (bytes.length > finalLength)
-							{
-								throw new FbException(String.format(
-									"String with length (%d) bytes greater than max expected length (%d).",
-									bytes.length, finalLength));
-							}
+							byte[] bytes = (byte[]) result;
 
 							message.setShort(nullOffset, NOT_NULL_FLAG);
 							message.setShort(offset, (short) bytes.length);
@@ -312,13 +341,19 @@ final class ExternalEngine implements IExternalEngineIntf
 				{
 					return new Conversion() {
 						@Override
-						Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
-							throws FbException
+						Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+							int nullOffset, int offset)
 						{
 							if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 								return null;
 
-							long blobId = message.getLong(offset);
+							return message.getLong(offset);
+						}
+
+						@Override
+						Object getFromMessageUnprivileged(IExternalContext context, Object result) throws FbException
+						{
+							long blobId = (long) result;
 
 							try
 							{
@@ -341,32 +376,46 @@ final class ExternalEngine implements IExternalEngineIntf
 						}
 
 						@Override
-						void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
-							Object o) throws FbException
+						Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException
 						{
 							if (o == null)
+								return null;
+
+							byte[] bytes = (byte[]) o;
+
+							try
+							{
+								FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+								FBBlob blob = (FBBlob) connection.createBlob();
+
+								try (OutputStream out = blob.setBinaryStream(1))
+								{
+									out.write(bytes);
+								}
+
+								return blob.getBlobId();
+							}
+							catch (Exception e)
+							{
+								FbException.rethrow(e);
+							}
+
+							return null;
+						}
+
+						@Override
+						void putInMessagePrivileged(IExternalContext context, Pointer message,
+							int nullOffset, int offset, Object o, Object result)
+						{
+							if (result == null)
 								message.setShort(nullOffset, NULL_FLAG);
 							else
 							{
-								byte[] bytes = (byte[]) o;
+								long blobId = (long) result;
 
-								try
-								{
-									FBConnection connection = (FBConnection) InternalContext.get().getConnection();
-									FBBlob blob = (FBBlob) connection.createBlob();
-
-									try (OutputStream out = blob.setBinaryStream(1))
-									{
-										out.write(bytes);
-									}
-
-									message.setShort(nullOffset, NOT_NULL_FLAG);
-									message.setLong(offset, blob.getBlobId());
-								}
-								catch (Exception e)
-								{
-									FbException.rethrow(e);
-								}
+								message.setShort(nullOffset, NOT_NULL_FLAG);
+								message.setShort(nullOffset, NOT_NULL_FLAG);
+								message.setLong(offset, blobId);
 							}
 						}
 					};
@@ -375,7 +424,8 @@ final class ExternalEngine implements IExternalEngineIntf
 				{
 					return new Conversion() {
 						@Override
-						Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+						Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+							int nullOffset, int offset)
 						{
 							if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 								return null;
@@ -385,14 +435,26 @@ final class ExternalEngine implements IExternalEngineIntf
 						}
 
 						@Override
-						void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
-							Object o) throws FbException
+						Object getFromMessageUnprivileged(IExternalContext context, Object result)
 						{
-							if (o == null)
+							return result;
+						}
+
+						@Override
+						Object putInMessageUnprivileged(IExternalContext context, Object o)
+						{
+							return o;
+						}
+
+						@Override
+						void putInMessagePrivileged(IExternalContext context, Pointer message,
+							int nullOffset, int offset, Object o, Object result) throws FbException
+						{
+							if (result == null)
 								message.setShort(nullOffset, NULL_FLAG);
 							else
 							{
-								byte[] bytes = (byte[]) o;
+								byte[] bytes = (byte[]) result;
 
 								if (bytes.length > length)
 								{
@@ -431,16 +493,22 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
-						throws FbException
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
 
-						long blobId = message.getLong(offset);
+						return message.getLong(offset);
+					}
 
+					@Override
+					Object getFromMessageUnprivileged(IExternalContext context, Object result) throws FbException
+					{
 						try
 						{
+							long blobId = (long) result;
+
 							FBConnection connection = (FBConnection) InternalContext.get().getConnection();
 							GDSHelper gdsHelper = connection.getGDSHelper();
 
@@ -454,45 +522,54 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset,
-						Object o) throws FbException
+					Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException
 					{
 						if (o == null)
+							return o;
+
+						Blob blob = (Blob) o;
+
+						try
+						{
+							FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+							FBBlob fbBlob;
+
+							if (blob instanceof FBBlob &&
+								(fbBlob = (FBBlob) blob).getGdsHelper() == connection.getGDSHelper())
+							{
+								return fbBlob.getBlobId();
+							}
+							else
+							{
+								FBBlob outBlob = (FBBlob) connection.createBlob();
+
+								try (InputStream in = blob.getBinaryStream())
+								{
+									outBlob.copyStream(in);
+								}
+
+								return outBlob.getBlobId();
+							}
+						}
+						catch (Exception e)
+						{
+							FbException.rethrow(e);
+							return null;
+						}
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset, Object o, Object result) throws FbException
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
-							Blob blob = (Blob) o;
+							long blobId = (long) result;
 
-							try
-							{
-								FBConnection connection = (FBConnection) InternalContext.get().getConnection();
-								long blobId;
-								FBBlob fbBlob;
-
-								if (blob instanceof FBBlob &&
-									(fbBlob = (FBBlob) blob).getGdsHelper() == connection.getGDSHelper())
-								{
-									blobId = fbBlob.getBlobId();
-								}
-								else
-								{
-									FBBlob outBlob = (FBBlob) connection.createBlob();
-
-									try (InputStream in = blob.getBinaryStream())
-									{
-										outBlob.copyStream(in);
-									}
-
-									blobId = outBlob.getBlobId();
-								}
-
-								message.setShort(nullOffset, NOT_NULL_FLAG);
-								message.setLong(offset, blobId);
-							}
-							catch (Exception e)
-							{
-								FbException.rethrow(e);
-							}
+							message.setShort(nullOffset, NOT_NULL_FLAG);
+							message.setLong(offset, blobId);
 						}
 					}
 				};
@@ -510,7 +587,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == short.class ? (Short)(short) 0 : null) :
@@ -518,14 +596,27 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
 					{
-						if (o == null)
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					{
+						return o;
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
+						Object o, Object result)
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
 							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setShort(offset, (short) o);
+							message.setShort(offset, (short) result);
 						}
 					}
 				};
@@ -543,7 +634,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == int.class ? (Integer) 0 : null) :
@@ -551,14 +643,27 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
 					{
-						if (o == null)
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					{
+						return o;
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
+						Object o, Object result)
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
 							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setInt(offset, (int) o);
+							message.setInt(offset, (int) result);
 						}
 					}
 				};
@@ -576,7 +681,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == long.class ? (Long) 0L : null) :
@@ -584,14 +690,27 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
 					{
-						if (o == null)
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					{
+						return o;
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
+						Object o, Object result)
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
 							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setLong(offset, (long) o);
+							message.setLong(offset, (long) result);
 						}
 					}
 				};
@@ -608,7 +727,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == float.class ? (Float) 0.0f : null) :
@@ -616,14 +736,27 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
 					{
-						if (o == null)
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					{
+						return o;
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
+						Object o, Object result)
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
 							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setFloat(offset, (float) o);
+							message.setFloat(offset, (float) result);
 						}
 					}
 				};
@@ -640,7 +773,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == double.class ? (Double) 0.0 : null) :
@@ -648,14 +782,27 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
 					{
-						if (o == null)
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					{
+						return o;
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
+						Object o, Object result)
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
 							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setDouble(offset, (double) o);
+							message.setDouble(offset, (double) result);
 						}
 					}
 				};
@@ -694,7 +841,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -734,27 +882,26 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					{
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
 					{
 						if (o == null)
-						{
-							message.setShort(nullOffset, NULL_FLAG);
-							return;
-						}
-
-						message.setShort(nullOffset, NOT_NULL_FLAG);
+							return null;
 
 						BigDecimal bigVal = (BigDecimal) o;
 
 						switch (type)
 						{
 							case ISCConstants.SQL_FLOAT:
-								message.setFloat(offset, bigVal.floatValue());
-								return;
+								return bigVal.floatValue();
 
 							case ISCConstants.SQL_DOUBLE:
-								message.setDouble(offset, bigVal.doubleValue());
-								return;
+								return bigVal.doubleValue();
 						}
 
 						BigInteger bigInt = bigVal.setScale(-scale, BigDecimal.ROUND_HALF_UP).unscaledValue();
@@ -764,20 +911,44 @@ final class ExternalEngine implements IExternalEngineIntf
 						switch (type)
 						{
 							case ISCConstants.SQL_SHORT:
-								message.setShort(offset, bigInt.shortValue());
-								break;
+								return bigInt.shortValue();
 
 							case ISCConstants.SQL_LONG:
-								message.setInt(offset, bigInt.intValue());
-								break;
+								return bigInt.intValue();
 
 							case ISCConstants.SQL_INT64:
-								message.setLong(offset, bigInt.longValue());
-								break;
+								return bigInt.longValue();
 
 							default:
 								assert false;
+								return null;
 						}
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset, Object o, Object result)
+					{
+						if (result == null)
+						{
+							message.setShort(nullOffset, NULL_FLAG);
+							return;
+						}
+
+						message.setShort(nullOffset, NOT_NULL_FLAG);
+
+						if (result instanceof Float)
+							message.setFloat(offset, (float) result);
+						else if (result instanceof Double)
+							message.setDouble(offset, (double) result);
+						else if (result instanceof Short)
+							message.setShort(offset, (short) result);
+						else if (result instanceof Integer)
+							message.setInt(offset, (int) result);
+						else if (result instanceof Long)
+							message.setLong(offset, (long) result);
+						else
+							assert false;
 					}
 				};
 			}
@@ -793,7 +964,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -807,14 +979,32 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					{
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
 					{
 						if (o == null)
+							return null;
+
+						return (long) ((java.util.Date) o).getTime();
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset, Object o, Object result) throws FbException
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
+							long t = (long) result;
+
 							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setInt(offset, javaDateToFb(((java.util.Date) o).getTime()));
+							message.setInt(offset, javaDateToFb(t));
 						}
 					}
 				};
@@ -832,7 +1022,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -842,14 +1033,32 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					{
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
 					{
 						if (o == null)
+							return null;
+
+						return (long) ((java.util.Date) o).getTime();
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset, Object o, Object result) throws FbException
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
+							long t = (long) result;
+
 							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setInt(offset, javaTimeToFb(((java.sql.Time) o).getTime()));
+							message.setInt(offset, javaTimeToFb(t));
 						}
 					}
 				};
@@ -867,7 +1076,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -880,15 +1090,31 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					{
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
 					{
 						if (o == null)
+							return null;
+
+						return (long) ((java.sql.Time) o).getTime();
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset, Object o, Object result) throws FbException
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
-							message.setShort(nullOffset, NOT_NULL_FLAG);
+							long t = (long) result;
 
-							long t = ((java.sql.Timestamp) o).getTime();
+							message.setShort(nullOffset, NOT_NULL_FLAG);
 							message.setInt(offset, javaDateToFb(t));
 							message.setInt(offset + 4, javaTimeToFb(t));
 						}
@@ -907,7 +1133,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessage(IExternalContext context, Pointer message, int nullOffset, int offset)
+					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
+						int nullOffset, int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == boolean.class ? (Boolean) false : null) :
@@ -915,14 +1142,27 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessage(IExternalContext context, Pointer message, int nullOffset, int offset, Object o)
+					Object getFromMessageUnprivileged(IExternalContext context, Object result)
 					{
-						if (o == null)
+						return result;
+					}
+
+					@Override
+					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					{
+						return o;
+					}
+
+					@Override
+					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
+						Object o, Object result)
+					{
+						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
 							message.setShort(nullOffset, NOT_NULL_FLAG);
-							message.setByte(offset, (byte) ((boolean) o ? 1 : 0));
+							message.setByte(offset, (byte) ((boolean) result ? 1 : 0));
 						}
 					}
 				};
@@ -1122,252 +1362,274 @@ final class ExternalEngine implements IExternalEngineIntf
 	public IExternalFunction makeFunction(IStatus status, IExternalContext context,
 		IRoutineMetadata metadata, IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
 	{
-		Routine routine = getRoutine(status, context, metadata, inBuilder, outBuilder, Routine.Type.FUNCTION);
-		return ExternalFunction.create(routine);
-	}
-
-	@Override
-	public IExternalProcedure makeProcedure(IStatus status, IExternalContext context,
-		IRoutineMetadata metadata, IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
-	{
-		Routine routine = getRoutine(status, context, metadata, inBuilder, outBuilder, Routine.Type.PROCEDURE);
-		return ExternalProcedure.create(routine);
-	}
-
-	@Override
-	public IExternalTrigger makeTrigger(IStatus status, IExternalContext context,
-		IRoutineMetadata metadata, IMetadataBuilder fieldsBuilder) throws FbException
-	{
-		Routine routine = getRoutine(status, context, metadata, fieldsBuilder, null, Routine.Type.TRIGGER);
-		return ExternalTrigger.create(routine);
-	}
-
-	private Routine getRoutine(IStatus status, IExternalContext context, IRoutineMetadata metadata,
-		IMetadataBuilder inBuilder, IMetadataBuilder outBuilder, Routine.Type type) throws FbException
-	{
 		try
 		{
-			String entryPoint = metadata.getEntryPoint(status);
-			String invalidMethodSignatureMsg = String.format("Invalid method signature: '%s'", entryPoint);
-			int paramsStart = entryPoint.indexOf('(');
-
-			if (paramsStart == -1)
-				throw new FbException(invalidMethodSignatureMsg);
-
-			int methodStart = entryPoint.lastIndexOf('.', paramsStart) + 1;
-
-			if (methodStart == 0)
-				throw new FbException(invalidMethodSignatureMsg);
-
-			String className = entryPoint.substring(0, methodStart - 1).trim();
-			String methodName = entryPoint.substring(methodStart, paramsStart).trim();
-
-			Class<?> clazz = runInClassLoader(status, context, className, methodName,
-				() -> Class.forName(className, true, sharedData.classLoader));
-
-			Routine routine = new Routine(status, metadata, this, type);
-			ArrayList<Class<?>> paramTypes = new ArrayList<>();
-
-			int[] pos = {paramsStart + 1};
-
-			skipBlanks(entryPoint, pos);
-
-			IMessageMetadata inMetadata = type == Routine.Type.TRIGGER ? null : metadata.getInputMetadata(status);
-			try
-			{
-				int inCount = inMetadata == null ? 0 : inMetadata.getCount(status);
-
-				IMessageMetadata outMetadata = type == Routine.Type.TRIGGER ? null : metadata.getOutputMetadata(status);
-				try
-				{
-					int outCount = outMetadata == null ? 0 : outMetadata.getCount(status);
-
-					if (peekChar(entryPoint, pos) == ')')
-						++pos[0];
-					else
-					{
-						if (type == Routine.Type.TRIGGER)
-							throw new FbException(invalidMethodSignatureMsg);
-
-						int n = 0;
-
-						do
-						{
-							++n;
-
-							boolean isOutput = n > inCount && n <= inCount + outCount;
-							Parameter parameter = getDataType(entryPoint, pos, isOutput);
-
-							IMessageMetadata inOutMetadata;
-							int index;
-
-							if (isOutput)
-							{
-								routine.outputParameters.add(parameter);
-								inOutMetadata = outMetadata;
-								index = n - 1 - inCount;
-							}
-							else
-							{
-								routine.inputParameters.add(parameter);
-								inOutMetadata = inMetadata;
-								index = n - 1;
-							}
-
-							parameter.name = inOutMetadata.getField(status, index);
-							parameter.type = fbTypeNames.get(inOutMetadata.getType(status, index));
-
-							paramTypes.add(parameter.javaClass);
-
-							skipBlanks(entryPoint, pos);
-
-							char c = getChar(entryPoint, pos);
-
-							if (c == ')')
-							{
-								//// TODO: return[s] <type> ?
-								break;
-							}
-							else if (c == ',')
-								skipBlanks(entryPoint, pos);
-							else
-							{
-								--pos[0];
-								throw new FbException(invalidMethodSignatureMsg);
-							}
-						} while (true);
-					}
-
-					skipBlanks(entryPoint, pos);
-
-					if (pos[0] < entryPoint.length() && getChar(entryPoint, pos) == '!')
-					{
-						skipBlanks(entryPoint, pos);
-						routine.nameInfo = entryPoint.substring(pos[0]);
-					}
-					else if (pos[0] != entryPoint.length())
-						throw new FbException(invalidMethodSignatureMsg);
-
-					//// TODO: Parameters prefixed with a Context parameter.
-					//// TODO: Zero parameters.
-
-					switch (type)
-					{
-						case FUNCTION:
-						{
-							assert outCount == 1;
-
-							if (paramTypes.size() != inCount && paramTypes.size() != 0)
-							{
-								throw new FbException(String.format("Number of parameters (%d) in the Java method " +
-									"does not match the number of parameters (%d) in the function declaration",
-									paramTypes.size(), inCount));
-							}
-
-							routine.method = clazz.getMethod(methodName, paramTypes.toArray(new Class<?> [0]));
-
-							DataType returnType = dataTypesByClass.get(routine.method.getReturnType());
-
-							if (returnType == null)
-							{
-								throw new FbException(String.format("Unrecognized data type: '%s'",
-									routine.method.getReturnType().getName()));
-							}
-
-							Parameter parameter = new Parameter(returnType, routine.method.getReturnType());
-							parameter.type = fbTypeNames.get(outMetadata.getType(status, 0));
-
-							routine.outputParameters.add(parameter);
-							break;
-						}
-
-						case PROCEDURE:
-						{
-							if (paramTypes.size() != inCount + outCount && paramTypes.size() != 0)
-							{
-								throw new FbException(String.format("Number of parameters (%d) in the Java method " +
-									"does not match the number of parameters (%d + %d) in the procedure declaration",
-									paramTypes.size(), inCount, outCount));
-							}
-
-							ArrayList<Class<?>> paramTypes2 = new ArrayList<>();
-
-							paramTypes
-								.stream()
-								.limit(inCount)
-								.forEach(p -> paramTypes2.add(p));
-
-							paramTypes
-								.stream()
-								.skip(inCount)
-								.forEach(p -> paramTypes2.add(Array.newInstance(p, 0).getClass()));
-
-							routine.method = clazz.getMethod(methodName, paramTypes2.toArray(new Class<?> [0]));
-
-							if (routine.method.getReturnType() != void.class &&
-								!ExternalResultSet.class.isAssignableFrom(routine.method.getReturnType()))
-							{
-								throw new FbException(String.format(
-									"Java method for a procedure must return void or an class implementing %s interface",
-									ExternalResultSet.class.getName()));
-							}
-
-							break;
-						}
-
-						case TRIGGER:
-						{
-							routine.method = clazz.getMethod(methodName);
-
-							if (routine.method.getReturnType() != void.class)
-								throw new FbException("Java method for a trigger must return void");
-
-							if (inBuilder != null)
-							{
-								IMessageMetadata triggerMetadata = metadata.getTriggerMetadata(status);
-								try
-								{
-									routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
-										triggerMetadata, inBuilder);
-								}
-								finally
-								{
-									triggerMetadata.release();
-								}
-							}
-
-							break;
-						}
-					}
-
-					if (type != Routine.Type.TRIGGER)
-					{
-						routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
-							inMetadata, inBuilder);
-
-						routine.setupParameters(status, routine.outputParameters, routine.outputMetadata,
-							outMetadata, outBuilder);
-					}
-				}
-				finally
-				{
-					if (outMetadata != null)
-						outMetadata.release();
-				}
-			}
-			finally
-			{
-				if (inMetadata != null)
-					inMetadata.release();
-			}
-
-			return routine;
+			return doPrivileged(() -> {
+				Routine routine = getRoutine(status, context, metadata, inBuilder, outBuilder, Routine.Type.FUNCTION);
+				return ExternalFunction.create(routine);
+			});
 		}
 		catch (Throwable t)
 		{
 			FbException.rethrow(t);
 			return null;
 		}
+	}
+
+	@Override
+	public IExternalProcedure makeProcedure(IStatus status, IExternalContext context,
+		IRoutineMetadata metadata, IMetadataBuilder inBuilder, IMetadataBuilder outBuilder) throws FbException
+	{
+		try
+		{
+			return doPrivileged(() -> {
+				Routine routine = getRoutine(status, context, metadata, inBuilder, outBuilder, Routine.Type.PROCEDURE);
+				return ExternalProcedure.create(routine);
+			});
+		}
+		catch (Throwable t)
+		{
+			FbException.rethrow(t);
+			return null;
+		}
+	}
+
+	@Override
+	public IExternalTrigger makeTrigger(IStatus status, IExternalContext context,
+		IRoutineMetadata metadata, IMetadataBuilder fieldsBuilder) throws FbException
+	{
+		try
+		{
+			return doPrivileged(() -> {
+				Routine routine = getRoutine(status, context, metadata, fieldsBuilder, null, Routine.Type.TRIGGER);
+				return ExternalTrigger.create(routine);
+			});
+		}
+		catch (Throwable t)
+		{
+			FbException.rethrow(t);
+			return null;
+		}
+	}
+
+	private Routine getRoutine(IStatus status, IExternalContext context, IRoutineMetadata metadata,
+		IMetadataBuilder inBuilder, IMetadataBuilder outBuilder, Routine.Type type) throws Throwable
+	{
+		String entryPoint = metadata.getEntryPoint(status);
+		String invalidMethodSignatureMsg = String.format("Invalid method signature: '%s'", entryPoint);
+		int paramsStart = entryPoint.indexOf('(');
+
+		if (paramsStart == -1)
+			throw new FbException(invalidMethodSignatureMsg);
+
+		int methodStart = entryPoint.lastIndexOf('.', paramsStart) + 1;
+
+		if (methodStart == 0)
+			throw new FbException(invalidMethodSignatureMsg);
+
+		String className = entryPoint.substring(0, methodStart - 1).trim();
+		String methodName = entryPoint.substring(methodStart, paramsStart).trim();
+
+		Class<?> clazz = runInClassLoader(status, context, className, methodName,
+			() -> Class.forName(className, true, sharedData.classLoader));
+
+		Routine routine = new Routine(status, metadata, this, type);
+		ArrayList<Class<?>> paramTypes = new ArrayList<>();
+
+		int[] pos = {paramsStart + 1};
+
+		skipBlanks(entryPoint, pos);
+
+		IMessageMetadata inMetadata = type == Routine.Type.TRIGGER ? null : metadata.getInputMetadata(status);
+		try
+		{
+			int inCount = inMetadata == null ? 0 : inMetadata.getCount(status);
+
+			IMessageMetadata outMetadata = type == Routine.Type.TRIGGER ? null : metadata.getOutputMetadata(status);
+			try
+			{
+				int outCount = outMetadata == null ? 0 : outMetadata.getCount(status);
+
+				if (peekChar(entryPoint, pos) == ')')
+					++pos[0];
+				else
+				{
+					if (type == Routine.Type.TRIGGER)
+						throw new FbException(invalidMethodSignatureMsg);
+
+					int n = 0;
+
+					do
+					{
+						++n;
+
+						boolean isOutput = n > inCount && n <= inCount + outCount;
+						Parameter parameter = getDataType(entryPoint, pos, isOutput);
+
+						IMessageMetadata inOutMetadata;
+						int index;
+
+						if (isOutput)
+						{
+							routine.outputParameters.add(parameter);
+							inOutMetadata = outMetadata;
+							index = n - 1 - inCount;
+						}
+						else
+						{
+							routine.inputParameters.add(parameter);
+							inOutMetadata = inMetadata;
+							index = n - 1;
+						}
+
+						parameter.name = inOutMetadata.getField(status, index);
+						parameter.type = fbTypeNames.get(inOutMetadata.getType(status, index));
+
+						paramTypes.add(parameter.javaClass);
+
+						skipBlanks(entryPoint, pos);
+
+						char c = getChar(entryPoint, pos);
+
+						if (c == ')')
+						{
+							//// TODO: return[s] <type> ?
+							break;
+						}
+						else if (c == ',')
+							skipBlanks(entryPoint, pos);
+						else
+						{
+							--pos[0];
+							throw new FbException(invalidMethodSignatureMsg);
+						}
+					} while (true);
+				}
+
+				skipBlanks(entryPoint, pos);
+
+				if (pos[0] < entryPoint.length() && getChar(entryPoint, pos) == '!')
+				{
+					skipBlanks(entryPoint, pos);
+					routine.nameInfo = entryPoint.substring(pos[0]);
+				}
+				else if (pos[0] != entryPoint.length())
+					throw new FbException(invalidMethodSignatureMsg);
+
+				//// TODO: Parameters prefixed with a Context parameter.
+				//// TODO: Zero parameters.
+
+				switch (type)
+				{
+					case FUNCTION:
+					{
+						assert outCount == 1;
+
+						if (paramTypes.size() != inCount && paramTypes.size() != 0)
+						{
+							throw new FbException(String.format("Number of parameters (%d) in the Java method " +
+								"does not match the number of parameters (%d) in the function declaration",
+								paramTypes.size(), inCount));
+						}
+
+						routine.method = clazz.getMethod(methodName, paramTypes.toArray(new Class<?> [0]));
+
+						DataType returnType = dataTypesByClass.get(routine.method.getReturnType());
+
+						if (returnType == null)
+						{
+							throw new FbException(String.format("Unrecognized data type: '%s'",
+								routine.method.getReturnType().getName()));
+						}
+
+						Parameter parameter = new Parameter(returnType, routine.method.getReturnType());
+						parameter.type = fbTypeNames.get(outMetadata.getType(status, 0));
+
+						routine.outputParameters.add(parameter);
+						break;
+					}
+
+					case PROCEDURE:
+					{
+						if (paramTypes.size() != inCount + outCount && paramTypes.size() != 0)
+						{
+							throw new FbException(String.format("Number of parameters (%d) in the Java method " +
+								"does not match the number of parameters (%d + %d) in the procedure declaration",
+								paramTypes.size(), inCount, outCount));
+						}
+
+						ArrayList<Class<?>> paramTypes2 = new ArrayList<>();
+
+						paramTypes
+							.stream()
+							.limit(inCount)
+							.forEach(p -> paramTypes2.add(p));
+
+						paramTypes
+							.stream()
+							.skip(inCount)
+							.forEach(p -> paramTypes2.add(Array.newInstance(p, 0).getClass()));
+
+						routine.method = clazz.getMethod(methodName, paramTypes2.toArray(new Class<?> [0]));
+
+						if (routine.method.getReturnType() != void.class &&
+							!ExternalResultSet.class.isAssignableFrom(routine.method.getReturnType()))
+						{
+							throw new FbException(String.format(
+								"Java method for a procedure must return void or an class implementing %s interface",
+								ExternalResultSet.class.getName()));
+						}
+
+						break;
+					}
+
+					case TRIGGER:
+					{
+						routine.method = clazz.getMethod(methodName);
+
+						if (routine.method.getReturnType() != void.class)
+							throw new FbException("Java method for a trigger must return void");
+
+						if (inBuilder != null)
+						{
+							IMessageMetadata triggerMetadata = metadata.getTriggerMetadata(status);
+							try
+							{
+								routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
+									triggerMetadata, inBuilder);
+							}
+							finally
+							{
+								triggerMetadata.release();
+							}
+						}
+
+						break;
+					}
+				}
+
+				if (type != Routine.Type.TRIGGER)
+				{
+					routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
+						inMetadata, inBuilder);
+
+					routine.setupParameters(status, routine.outputParameters, routine.outputMetadata,
+						outMetadata, outBuilder);
+				}
+			}
+			finally
+			{
+				if (outMetadata != null)
+					outMetadata.release();
+			}
+		}
+		finally
+		{
+			if (inMetadata != null)
+				inMetadata.release();
+		}
+
+		return routine;
 	}
 
 	private Parameter getDataType(String s, int[] pos, boolean arrayRef) throws FbException
@@ -1457,6 +1719,12 @@ final class ExternalEngine implements IExternalEngineIntf
 	<T> T runInClassLoader(IStatus status, IExternalContext context, String className, String methodName,
 		CallableThrowable<T> callable) throws Throwable
 	{
+		return doPrivileged(() -> runInClassLoader0(status, context, className, methodName, callable));
+	}
+
+	private <T> T runInClassLoader0(IStatus status, IExternalContext context, String className, String methodName,
+		CallableThrowable<T> callable) throws Throwable
+	{
 		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
 		try
 		{
@@ -1470,75 +1738,100 @@ final class ExternalEngine implements IExternalEngineIntf
 
 			AccessControlContext acc = new AccessControlContext(protectionDomains);
 
-			try
-			{
-				return Subject.doAsPrivileged(subj, new PrivilegedExceptionAction<T>() {
-					@Override
-					public T run() throws Exception
-					{
-						try
-						{
-							return callable.call();
-						}
-						catch (Throwable t)
-						{
-							// We cannot pass a Throwable with PrivilegedExceptionAction, so we enclose it with an
-							// Exception. This is the reason we call getClause() two times below.
-							throw new Exception(t);
-						}
-					}
-				}, acc);
-			}
-			catch (PrivilegedActionException privilegedException)
-			{
-				// Lets filter the stack trace to remove garbage from user POV. We start removing the
-				// privilegedException trace, then we remove up to the user class and method name.
-				// From all frames.
-
-				Throwable userException = privilegedException.getCause().getCause();	// explained above
-				StackTraceElement[] privilegedTrace = privilegedException.getStackTrace();
-
-				for (Throwable currentException = userException;
-					 currentException != null;
-					 currentException = currentException.getCause())
+			return doAsPrivileged(subj, acc, () -> {
+				try
 				{
-					StackTraceElement[] currentTrace = currentException.getStackTrace();
+					return callable.call();
+				}
+				catch (Throwable userException)
+				{
+					// Lets filter the stack trace to remove garbage from user POV. We remove up to the user class
+					// and method name. From all frames.
 
-					for (int i = currentTrace.length - 1, j = privilegedTrace.length - 1; i >= 0; --i)
+					for (Throwable currentException = userException;
+						 currentException != null;
+						 currentException = currentException.getCause())
 					{
-						if (!currentTrace[i].equals(privilegedTrace[j]))
-							break;
+						StackTraceElement[] currentTrace = currentException.getStackTrace();
 
-						if (j-- == 0)
+						for (int i = currentTrace.length - 1; i >= 0; --i)
 						{
-							int k = i;
-
-							while (--k >= 0 &&
-								!(currentTrace[k].getClassName().equals(className) &&
-								  (currentTrace[k].getMethodName().equals(methodName) ||
-								   "<clinit>".equals(currentTrace[k].getMethodName()))))
+							if (currentTrace[i].getClassName().equals(className) &&
+								currentTrace[i].getMethodName().equals(methodName))
 							{
+								currentException.setStackTrace(Arrays.copyOf(currentTrace, i + 1));
+								break;
 							}
-
-							if (k < 0 &&
-								!(currentException instanceof ExceptionInInitializerError ||
-								  currentException instanceof NoClassDefFoundError))
-							{
-								k = i - 1;
-							}
-
-							currentException.setStackTrace(Arrays.copyOf(currentTrace, k + 1));
-							break;
 						}
 					}
-				}
 
-				throw userException;
-			}
+					throw userException;
+				}
+			});
 		}
 		finally
 		{
 			Thread.currentThread().setContextClassLoader(oldClassLoader);
+		}
+	}
+
+	interface PrivilegedThrowableAction<T>
+	{
+		T run() throws Throwable;
+	}
+
+	static <T> T doPrivileged(PrivilegedThrowableAction<T> action) throws Throwable
+	{
+		try
+		{
+			return AccessController.doPrivileged(new PrivilegedExceptionAction<T>() {
+				@Override
+				public T run() throws Exception
+				{
+					try
+					{
+						return action.run();
+					}
+					catch (Throwable t)
+					{
+						// We cannot pass a Throwable with PrivilegedExceptionAction, so we enclose it with an
+						// Exception. This is the reason we call getClause() two times below.
+						throw new Exception(t);
+					}
+				}
+			});
+		}
+		catch (PrivilegedActionException privilegedException)
+		{
+			throw privilegedException.getCause().getCause();	// user exception
+		}
+	}
+
+	static <T> T doAsPrivileged(Subject subject, AccessControlContext acc, PrivilegedThrowableAction<T> action)
+		throws Throwable
+	{
+		try
+		{
+			return Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<T>() {
+				@Override
+				public T run() throws Exception
+				{
+					try
+					{
+						return action.run();
+					}
+					catch (Throwable t)
+					{
+						// We cannot pass a Throwable with PrivilegedExceptionAction, so we enclose it with an
+						// Exception. This is the reason we call getClause() two times below.
+						throw new Exception(t);
+					}
+				}
+			}, acc);
+		}
+		catch (PrivilegedActionException privilegedException)
+		{
+			throw privilegedException.getCause().getCause();	// user exception
 		}
 	}
 }

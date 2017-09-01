@@ -32,13 +32,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.ITransaction;
 // This (non-public) class is accessed by org.firebirdsql.fbjava.Context by reflection.
 final class InternalContext implements AutoCloseable
 {
-	private static ThreadLocal<InternalContext> tls = new ThreadLocal<InternalContext>() {
-		@Override
-		protected InternalContext initialValue()
-		{
-			return new InternalContext();
-		}
-	};
+	private static ThreadLocal<InternalContext> tls = new ThreadLocal<InternalContext>();
 	private IAttachment attachment;
 	private ITransaction transaction;
 	private Routine routine;
@@ -52,6 +46,13 @@ final class InternalContext implements AutoCloseable
 		return tls.get();
 	}
 
+	public static InternalContext set(InternalContext newValue)
+	{
+		InternalContext oldValue = tls.get();
+		tls.set(newValue);
+		return oldValue;
+	}
+
 	public static ContextImpl getContextImpl()
 	{
 		return get().contextImpl;
@@ -60,7 +61,7 @@ final class InternalContext implements AutoCloseable
 	public static InternalContext create(IStatus status, IExternalContext context, Routine routine,
 		ValuesImpl inValues, ValuesImpl outValues) throws FbException
 	{
-		InternalContext internalContext = get();
+		InternalContext internalContext = new InternalContext();
 		internalContext.setup(status, context, routine, 0, inValues, outValues);
 		return internalContext;
 	}
@@ -68,7 +69,7 @@ final class InternalContext implements AutoCloseable
 	public static InternalContext createTrigger(IStatus status, IExternalContext context, Routine routine,
 		int action, ValuesImpl oldValues, ValuesImpl newValues) throws FbException
 	{
-		InternalContext internalContext = get();
+		InternalContext internalContext = new InternalContext();
 		internalContext.setup(status, context, routine, action, oldValues, newValues);
 		return internalContext;
 	}

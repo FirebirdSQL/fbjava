@@ -131,16 +131,24 @@ final class DbPolicy extends Policy
 
 			try (InternalContext internalContext = InternalContext.create(status, context, null, null, null))
 			{
-				try (Connection conn = internalContext.getConnection())
+				InternalContext oldContext = InternalContext.set(internalContext);
+				try
 				{
-					try (Statement stmt = conn.createStatement())
+					try (Connection conn = internalContext.getConnection())
 					{
-						try (ResultSet rs = stmt.executeQuery("select current_role from rdb$database"))
+						try (Statement stmt = conn.createStatement())
 						{
-							rs.next();
-							roleName = rs.getString(1);
+							try (ResultSet rs = stmt.executeQuery("select current_role from rdb$database"))
+							{
+								rs.next();
+								roleName = rs.getString(1);
+							}
 						}
 					}
+				}
+				finally
+				{
+					InternalContext.set(oldContext);
 				}
 			}
 
