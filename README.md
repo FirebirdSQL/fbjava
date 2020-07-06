@@ -1,21 +1,10 @@
 # FB/Java plugin for Firebird
 
-Manual: https://rawgit.com/FirebirdSQL/fbjava/1.0.0-alpha-1/src/etc/doc/fbjava.pdf
+Manual: https://github.com/FirebirdSQL/fbjava/blob/1.0.0-alpha-1/src/etc/doc/fbjava.pdf
 
-Java Docs: https://rawgit.com/FirebirdSQL/fbjava/1.0.0-alpha-1/apidocs/index.html
+Java Docs: https://htmlpreview.github.io/?https://raw.githubusercontent.com/FirebirdSQL/fbjava/1.0.0-alpha-1/apidocs/org/firebirdsql/fbjava/package-summary.html
 
-Use this setting as maven repository:
-
-```
-FIXME: Push to maven central.
-<repository>
-	<id>fbjava</id>
-	<name>fbjava</name>
-	<url>https://raw.githubusercontent.com/asfernandes/fbjava-maven/master/maven2</url>
-</repository>
-```
-
-And this setting for the artifact dependency:
+Maven:
 
 ```
 <dependency>

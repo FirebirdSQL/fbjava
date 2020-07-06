@@ -6,9 +6,34 @@
 
 	<groupId>org.firebirdsql.fbjava</groupId>
 	<artifactId>fbjava-parent</artifactId>
-	<name>fbjava-parent</name>
 	<version>1.0.0-alpha-1</version>
 	<packaging>pom</packaging>
+
+	<name>${project.groupId}:${project.artifactId}</name>
+	<description>Java plugin for Firebird Database</description>
+	<url>https://github.com/FirebirdSQL/fbjava</url>
+
+	<licenses>
+		<license>
+			<name>LGPL</name>
+			<url>http://www.gnu.org/copyleft/lgpl.html</url>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Adriano dos Santos Fernandes</name>
+			<email>adrianosf@gmail.com</email>
+			<organization>FirebirdSQL</organization>
+			<organizationUrl>https://github.com/FirebirdSQL</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/FirebirdSQL/fbjava.git</connection>
+		<developerConnection>scm:git:ssh://github.com:FirebirdSQL/fbjava.git</developerConnection>
+		<url>http://github.com/FirebirdSQL/fbjava/tree/master</url>
+	</scm>
 
 	<profiles>
 		<profile>
@@ -28,10 +53,11 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
 
-		<maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
-		<maven-source-plugin.version>3.0.0</maven-source-plugin.version>
-		<maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
-		<maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
+		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+		<maven-source-plugin.version>3.2.0</maven-source-plugin.version>
+		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
+		<maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
+		<maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
 
 		<jaybird.version>4.0.0.java8</jaybird.version>
 		<jna.version>4.4.0</jna.version>
@@ -39,6 +65,12 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>org.firebirdsql.jdbc</groupId>
+				<artifactId>jaybird</artifactId>
+				<version>${jaybird.version}</version>
+			</dependency>
+
 			<dependency>
 				<groupId>net.java.dev.jna</groupId>
 				<artifactId>jna</artifactId>
@@ -114,17 +146,23 @@
 						</execution>
 					</executions>
 				</plugin>
+
+				<plugin>
+					<artifactId>maven-install-plugin</artifactId>
+					<version>${maven-install-plugin.version}</version>
+					<configuration>
+					</configuration>
+					<executions>
+						<execution>
+							<id>install</id>
+							<phase>install</phase>
+							<goals>
+								<goal>install</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>
-
-	<!--
-	<repositories>
-		<repository>
-			<id>sonatype-snapshot</id>
-			<name>sonatype-snapshot</name>
-			<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-		</repository>
-	</repositories>
-	-->
 </project>

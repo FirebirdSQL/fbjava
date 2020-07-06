@@ -12,8 +12,11 @@
 	</parent>
 
 	<artifactId>fbjava-impl</artifactId>
-	<name>fbjava-impl</name>
 	<packaging>jar</packaging>
+
+	<name>${project.groupId}:${project.artifactId}</name>
+	<description>Java plugin for Firebird Database</description>
+	<url>https://github.com/FirebirdSQL/fbjava</url>
 
 	<dependencies>
 		<dependency>
@@ -25,7 +28,6 @@
 		<dependency>
 			<groupId>org.firebirdsql.jdbc</groupId>
 			<artifactId>jaybird</artifactId>
-			<version>${jaybird.version}</version>
 		</dependency>
 
 		<dependency>
@@ -38,6 +40,13 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-install-plugin</artifactId>
 				<configuration>
 					<skip>true</skip>
 				</configuration>
