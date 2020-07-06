@@ -11,4 +11,4 @@ EXAMPLES_ROOT=`readlink -f $EXAMPLES_ROOT`
 
 # Replace our JAR.
 $FBJAVA_BIN/fbjava-deployer.sh --database embedded:$EXAMPLES_ROOT/db.fdb \
-  --replace-jar $EXAMPLES_ROOT/target/fbjava-example-1.0.0-alpha-1.jar fbjava-example-1.0.0-alpha-1.jar
+  --replace-jar $EXAMPLES_ROOT/target/fbjava-example-1.0.0-beta-1.jar fbjava-example-1.0.0-beta-1.jar

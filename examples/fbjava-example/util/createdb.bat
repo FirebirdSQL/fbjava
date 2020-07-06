@@ -31,7 +31,7 @@ for %%i in (%EXAMPLES_ROOT%\target\dependency\*.jar) do (
 
 REM Store our JAR on the database.
 call %FBJAVA_BIN%\fbjava-deployer.bat --database embedded:%EXAMPLES_ROOT%\db.fdb ^
-  --install-jar %EXAMPLES_ROOT%\target\fbjava-example-1.0.0-alpha-1.jar fbjava-example-1.0.0-alpha-1.jar
+  --install-jar %EXAMPLES_ROOT%\target\fbjava-example-1.0.0-beta-1.jar fbjava-example-1.0.0-beta-1.jar
 
 REM Create the metadata.
 %FB_BIN%\isql -q %EXAMPLES_ROOT%\db.fdb -i %THIS_DIR%\database.sql

@@ -2,9 +2,9 @@
 
 # FB/Java plugin for Firebird
 
-Manual: https://github.com/FirebirdSQL/fbjava/blob/1.0.0-alpha-1/src/etc/doc/fbjava.pdf
+Manual: https://github.com/FirebirdSQL/fbjava/blob/1.0.0-beta-1/src/etc/doc/fbjava.pdf
 
-Java Docs: https://htmlpreview.github.io/?https://raw.githubusercontent.com/FirebirdSQL/fbjava/1.0.0-alpha-1/apidocs/org/firebirdsql/fbjava/package-summary.html
+Java Docs: https://htmlpreview.github.io/?https://raw.githubusercontent.com/FirebirdSQL/fbjava/1.0.0-beta-1/apidocs/org/firebirdsql/fbjava/package-summary.html
 
 Maven:
 
@@ -12,7 +12,7 @@ Maven:
 <dependency>
 	<groupId>org.firebirdsql.fbjava</groupId>
 	<artifactId>fbjava</artifactId>
-	<version>1.0.0-alpha-1</version>
+	<version>1.0.0-beta-1</version>
 	<scope>provided</scope>
 </dependency>
 ```
