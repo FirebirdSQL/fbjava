@@ -60,7 +60,7 @@
 		<maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
 
 		<jaybird.version>4.0.0.java8</jaybird.version>
-		<jna.version>4.4.0</jna.version>
+		<jna.version>5.5.0</jna.version>
 	</properties>
 
 	<dependencyManagement>
