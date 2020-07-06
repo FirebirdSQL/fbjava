@@ -24,7 +24,7 @@ OBJ_DIRS := $(addprefix $(OBJ_DIR)/,$(MODULES))
 SRCS := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 
-CXX_FLAGS := -ggdb -MMD -MP -std=c++17
+CXX_FLAGS := -ggdb -MMD -MP -std=c++17 -Isrc/native/fbjava/include
 LD_FLAGS  := -static-libgcc -static-libstdc++
 
 ifneq ($(OS),Windows_NT)
@@ -60,4 +60,4 @@ $(foreach bdir,$(OBJ_DIRS),$(eval $(call compile,$(bdir))))
 -include $(addsuffix .d,$(basename $(OBJS)))
 
 $(LIB_DIR)/libfbjava.$(SHRLIB_EXT): $(OBJ_DIR)/fbjava/fbjava.o
-	$(LD) -shared $(LD_FLAGS) $^ -o $@ -lfbclient
+	$(LD) -shared $(LD_FLAGS) $^ -o $@
