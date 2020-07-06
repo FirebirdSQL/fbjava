@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
+#FIXME:
 THIS_DIR=`readlink -f $0`
 THIS_DIR=`dirname $THIS_DIR`
 
