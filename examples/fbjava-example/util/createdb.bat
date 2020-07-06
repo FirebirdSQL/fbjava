@@ -12,9 +12,9 @@ popd
 
 REM Configure some permissions necessary for our test.
 
-%FB_BIN%\isql -q %FBJAVA_ROOT%\conf\java-security.fdb -i util\security.sql
-echo execute procedure setup_fbjava_example('%EXAMPLES_ROOT%', '\'); | %FB_BIN%\isql -q %FBJAVA_ROOT%\conf\java-security.fdb
-echo drop procedure setup_fbjava_example; | %FB_BIN%\isql -q %FBJAVA_ROOT%\conf\java-security.fdb
+%FB_BIN%\isql -q -user sysdba %FBJAVA_ROOT%\conf\java-security.fdb -i util\security.sql
+echo execute procedure setup_fbjava_example('%EXAMPLES_ROOT%', '\'); | %FB_BIN%\isql -q -user sysdba %FBJAVA_ROOT%\conf\java-security.fdb
+echo drop procedure setup_fbjava_example; | %FB_BIN%\isql -q -user sysdba %FBJAVA_ROOT%\conf\java-security.fdb
 
 REM Create an empty database.
 echo create database '%EXAMPLES_ROOT%\db.fdb' default character set utf8; | %FB_BIN%\isql -q

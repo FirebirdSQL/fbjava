@@ -76,5 +76,5 @@ if [ -f "$TARGET_DIR/conf/java-security.fdb" ]; then
 	rm "$TARGET_DIR/conf/java-security.fdb"
 fi
 
-echo "create database '$TARGET_DIR/conf/java-security.fdb' default character set utf8;" | isql -q
-isql "$TARGET_DIR/conf/java-security.fdb" -q -i "$TARGET_DIR/scripts/java-security.sql"
+echo "create database '$TARGET_DIR/conf/java-security.fdb' default character set utf8;" | isql -q -user sysdba
+isql "$TARGET_DIR/conf/java-security.fdb" -q -user sysdba -i "$TARGET_DIR/scripts/java-security.sql"
