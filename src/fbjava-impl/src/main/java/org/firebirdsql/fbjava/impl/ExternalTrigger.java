@@ -87,7 +87,15 @@ final class ExternalTrigger implements IExternalTriggerIntf
 					return null;
 				};
 
-				routine.run(status, context, null, preExecute, postExecute);
+				final InternalContext oldContext = InternalContext.set(internalContext);
+				try
+				{
+					routine.run(status, context, null, preExecute, postExecute);
+				}
+				finally
+				{
+					InternalContext.set(oldContext);
+				}
 			}
 		}
 		catch (final Throwable t)
