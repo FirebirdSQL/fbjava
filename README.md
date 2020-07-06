@@ -1,3 +1,5 @@
+![build](https://github.com/FirebirdSQL/fbjava/workflows/build/badge.svg)
+
 # FB/Java plugin for Firebird
 
 Manual: https://github.com/FirebirdSQL/fbjava/blob/1.0.0-alpha-1/src/etc/doc/fbjava.pdf
