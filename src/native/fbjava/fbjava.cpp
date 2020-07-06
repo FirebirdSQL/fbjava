@@ -23,6 +23,7 @@
 #include "firebird/Interface.h"
 #include <algorithm>
 #include <array>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -34,7 +35,6 @@
 #include <cstring>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <dirent.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -47,6 +47,7 @@
 #include "jni.h"
 
 using namespace Firebird;
+namespace fs = std::filesystem;
 using std::array;
 using std::back_inserter;
 using std::cerr;
@@ -399,12 +400,12 @@ static void init()
 			}
 		}
 	}
-	catch (const FbException& e)
+	catch (const FbException&)
 	{
 		throw runtime_error("Error looking for JavaHome in the config file.");
 	}
 
-	string libFile;
+	fs::path libFile;
 
 #ifdef WIN32
 	{	// scope
@@ -422,9 +423,7 @@ static void init()
 	}
 #endif
 
-	string libDir(libFile.substr(0, strrchr(libFile.c_str(), DEFAULT_PATH_SEP) - libFile.c_str()));
-	libDir += DEFAULT_PATH_SEP;
-	libDir += "../jar";
+	fs::path libDir(libFile.parent_path().parent_path() / "jar");
 
 	if (javaHome.empty())
 	{
@@ -503,21 +502,12 @@ static void init()
 
 	vector<string> classPathEntries;
 
-	const auto dir = opendir(libDir.c_str());
-
-	if (!dir)
-		throw runtime_error("Cannot set the classpath. Directory '" + libDir + "' does not exist.");
-
-	while (const auto dirEntry = readdir(dir))
+	for (const auto& dirEntry : fs::directory_iterator(libDir))
 	{
-		string name(dirEntry->d_name);
-
-#ifdef WIN32
-		if (name != "." && name != "..")
-#else
-		if (dirEntry->d_type == DT_REG || dirEntry->d_type == DT_LNK)
-#endif
+		if (dirEntry.is_regular_file())
 		{
+			const string name = dirEntry.path().filename().string();
+
 			if (name.length() > 4 && name.substr(name.length() - 4) == ".jar")
 			{
 				string protocol("file://");
@@ -526,12 +516,13 @@ static void init()
 				protocol += "/";
 #endif
 
-				classPathEntries.push_back(protocol + libDir + DEFAULT_PATH_SEP + dirEntry->d_name);
+				classPathEntries.push_back(protocol + dirEntry.path().string());
 			}
 		}
 	}
 
-	closedir(dir);
+	if (classPathEntries.empty())
+		throw runtime_error("Cannot set the classpath. Directory '" + libDir.string() + "' does not exist.");
 
 	const auto urlArray = jniLocalRef(env, env->NewObjectArray(classPathEntries.size(), urlCls.get(), nullptr));
 	if (!urlArray)
@@ -574,7 +565,7 @@ static void init()
 	const auto mainInitializeId = getStaticMethodID(env, mainCls.get(), "initialize", "(Ljava/lang/String;)V");
 	checkJavaException(env);
 
-	const auto nativeLibrary = jniLocalRef(env, env->NewStringUTF(libFile.c_str()));
+	const auto nativeLibrary = jniLocalRef(env, env->NewStringUTF(libFile.string().c_str()));
 	if (!nativeLibrary)
 		checkJavaException(env);
 

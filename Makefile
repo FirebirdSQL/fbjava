@@ -24,7 +24,7 @@ OBJ_DIRS := $(addprefix $(OBJ_DIR)/,$(MODULES))
 SRCS := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 
-CXX_FLAGS := -ggdb -MMD -MP -std=c++14
+CXX_FLAGS := -ggdb -MMD -MP -std=c++17
 LD_FLAGS  := -static-libgcc -static-libstdc++
 
 ifneq ($(OS),Windows_NT)
