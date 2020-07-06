@@ -29,14 +29,14 @@ final class JnaUtil
 
 	public static <T> T pin(T o)
 	{
-		boolean added = objects.add(o);
+		final boolean added = objects.add(o);
 		assert added;
 		return o;
 	}
 
 	public static void unpin(Object o)
 	{
-		boolean removed = objects.remove(o);
+		final boolean removed = objects.remove(o);
 		assert removed;
 	}
 }

@@ -24,11 +24,11 @@ import org.firebirdsql.fbjava.ValuesMetadata;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalTrigger;
 
 
-class TriggerContextImpl extends ContextImpl implements TriggerContext
+final class TriggerContextImpl extends ContextImpl implements TriggerContext
 {
 	private final Action action;
 
-	public TriggerContextImpl(InternalContext internalContext, int triggerAction)
+	public TriggerContextImpl(final InternalContext internalContext, final int triggerAction)
 	{
 		super(internalContext);
 
@@ -76,38 +76,38 @@ class TriggerContextImpl extends ContextImpl implements TriggerContext
 	}
 
 	@Override
-	public String getTableName()
+	public final String getTableName()
 	{
 		return internalContext.getRoutine().tableName;
 	}
 
 	@Override
-	public Type getType()
+	public final Type getType()
 	{
 		return internalContext.getRoutine().triggerType;
 	}
 
 	@Override
-	public Action getAction()
+	public final Action getAction()
 	{
 		return action;
 	}
 
 	@Override
-	public ValuesMetadata getFieldsMetadata()
+	public final ValuesMetadata getFieldsMetadata()
 	{
 		Routine routine = internalContext.getRoutine();
 		return routine.triggerType == Type.DATABASE ? null : routine.inputMetadata;
 	}
 
 	@Override
-	public Values getOldValues()
+	public final Values getOldValues()
 	{
 		return internalContext.getInValues();
 	}
 
 	@Override
-	public Values getNewValues()
+	public final Values getNewValues()
 	{
 		return internalContext.getOutValues();
 	}

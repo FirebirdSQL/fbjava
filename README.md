@@ -7,6 +7,7 @@ Java Docs: https://rawgit.com/FirebirdSQL/fbjava/1.0.0-alpha-1/apidocs/index.htm
 Use this setting as maven repository:
 
 ```
+FIXME: Push to maven central.
 <repository>
 	<id>fbjava</id>
 	<name>fbjava</name>
@@ -27,5 +28,5 @@ And this setting for the artifact dependency:
 
 ## Sponsors
 
-The FB/Java team would like to thank YourKit for providing licenses to their [YourKit Java Profiler](https://www.yourkit.com/java/profiler/). 
+The FB/Java team would like to thank YourKit for providing licenses to their [YourKit Java Profiler](https://www.yourkit.com/java/profiler/).
 ![YourKit](https://www.yourkit.com/images/yklogo.png)

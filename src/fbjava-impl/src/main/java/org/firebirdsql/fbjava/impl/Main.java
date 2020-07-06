@@ -31,7 +31,7 @@ final class Main
 	public static IMaster master;
 	public static IUtil util;
 
-	public static void initialize(String nativeLibrary) throws ClassNotFoundException
+	public static void initialize(final String nativeLibrary) throws ClassNotFoundException
 	{
 		//// FIXME: Receive the client library name from the plugin.
 		library = (FbClientLibrary) Native.loadLibrary("fbclient", FbClientLibrary.class);

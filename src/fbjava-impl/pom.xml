@@ -24,11 +24,8 @@
 
 		<dependency>
 			<groupId>org.firebirdsql.jdbc</groupId>
-			<artifactId>jaybird-jdk18</artifactId>
+			<artifactId>jaybird</artifactId>
 			<version>${jaybird.version}</version>
-			<!-- FIXME: Use a Jaybird public release. -->
-			<scope>system</scope>
-			<systemPath>${project.basedir}/../../../jaybird.git/output/lib/jaybird-full-${jaybird.version}.jar</systemPath>
 		</dependency>
 
 		<dependency>

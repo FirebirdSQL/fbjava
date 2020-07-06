@@ -31,41 +31,41 @@ final class FbException extends Exception
 {
 	private static final long serialVersionUID = 1L;
 
-	public FbException(Throwable t)
+	public FbException(final Throwable t)
 	{
 		super(t);
 	}
 
-	public FbException(String msg)
+	public FbException(final String msg)
 	{
 		super(msg);
 	}
 
-	public FbException(String msg, Throwable t)
+	public FbException(final String msg, final Throwable t)
 	{
 		super(msg, t);
 	}
 
-	public static void rethrow(Throwable t) throws FbException
+	public static void rethrow(final Throwable t) throws FbException
 	{
 		throw new FbException(null, t);
 	}
 
-	public static void catchException(IStatus status, Throwable t)
+	public static void catchException(final IStatus status, Throwable t)
 	{
 		while (t != null && t instanceof FbException && t.getMessage() == null)
 			t = t.getCause();
 
-		StringWriter sw = new StringWriter();
-		PrintWriter pw = new PrintWriter(sw);
+		final StringWriter sw = new StringWriter();
+		final PrintWriter pw = new PrintWriter(sw);
 		t.printStackTrace(pw);
-		String msg = sw.toString();
+		final String msg = sw.toString();
 
-		try (CloseableMemory memory = new CloseableMemory(msg.length() + 1))
+		try (final CloseableMemory memory = new CloseableMemory(msg.length() + 1))
 		{
 			memory.setString(0, msg);
 
-			Pointer[] vector = new Pointer[] {
+			final Pointer[] vector = new Pointer[] {
 				new Pointer(ISCConstants.isc_arg_gds),
 				new Pointer(ISCConstants.isc_random),
 				new Pointer(ISCConstants.isc_arg_cstring),
@@ -78,7 +78,7 @@ final class FbException extends Exception
 		}
 	}
 
-	public static void checkException(IStatus status) throws FbException
+	public static void checkException(final IStatus status) throws FbException
 	{
 		if ((status.getState() & IStatus.STATE_ERRORS) != 0)
 			throw new FbException("FIXME:");	//// FIXME:

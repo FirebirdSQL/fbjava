@@ -37,10 +37,10 @@ import java.util.jar.JarInputStream;
 import java.util.Properties;
 
 
-public class Deployer
+public final class Deployer implements AutoCloseable
 {
-	private boolean defaultConnection;
-	private Connection conn;
+	private final boolean defaultConnection;
+	private final Connection conn;
 
 	public Deployer(String[] args) throws Exception
 	{
@@ -55,7 +55,7 @@ public class Deployer
 			if (args[i] == null)
 				continue;
 
-			boolean moreArgs = (i + 1 < args.length && !args[i + 1].startsWith("-"));
+			final boolean moreArgs = (i + 1 < args.length && !args[i + 1].startsWith("-"));
 
 			if (args[i].equals("--database"))
 			{
@@ -87,7 +87,7 @@ public class Deployer
 		if (database == null)
 			throw new Exception("Option --database must be present");
 
-		Properties properties = new Properties();
+		final Properties properties = new Properties();
 		properties.setProperty("encoding", "utf8");
 
 		if (user != null)
@@ -102,6 +102,7 @@ public class Deployer
 
 	public Deployer() throws SQLException
 	{
+		defaultConnection = true;
 		conn = DriverManager.getConnection("jdbc:default:connection");
 	}
 
@@ -118,15 +119,12 @@ public class Deployer
 
 	private void runScript(String name) throws Exception
 	{
-		InputStream stream = getClass().getResource(name).openStream();
-		try
+		try (final BufferedReader reader = new BufferedReader(new InputStreamReader(
+				getClass().getResource(name).openStream())))
 		{
-			BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-
-			Statement stmt = conn.createStatement();
-			try
+			try (final Statement stmt = conn.createStatement())
 			{
-				StringBuilder sb = new StringBuilder();
+				final StringBuilder sb = new StringBuilder();
 				String line;
 
 				while ((line = reader.readLine()) != null)
@@ -135,7 +133,7 @@ public class Deployer
 
 					if (line.endsWith("!"))
 					{
-						String s = sb.substring(0, sb.length() - 1).trim();
+						final String s = sb.substring(0, sb.length() - 1).trim();
 
 						// Hack needed by the uninstall.sql script.
 						if (s.startsWith("commit"))
@@ -149,14 +147,6 @@ public class Deployer
 						sb.append("\r\n");
 				}
 			}
-			finally
-			{
-				stmt.close();
-			}
-		}
-		finally
-		{
-			stream.close();
 		}
 	}
 
@@ -178,32 +168,35 @@ public class Deployer
 
 	private class InstallJarResult implements ExternalResultSet
 	{
-		private String[] className;
-		private PreparedStatement entryStmt;
-		private JarInputStream jarStream;
-		private byte[] buffer;
+		private final String[] className;
+		private final PreparedStatement entryStmt;
+		private final JarInputStream jarStream;
+		private final byte[] buffer;
 
-		public InstallJarResult(URL url, String name, String[] className) throws Exception
+		public InstallJarResult(final URL url, final String name, final String[] className) throws Exception
 		{
 			this.className = className;
 
-			PreparedStatement jarStmt = conn.prepareStatement(
-				"execute block (name type of column fb$java$jar.name = ?)\n" +
-				"	returns (id type of column fb$java$jar.id)\n" +
-				"as\n" +
-				"begin\n" +
-				"	insert into fb$java$jar (id, name, owner)\n" +
-				"		values (next value for fb$java$seq, :name, current_user)\n" +
-				"		returning id into id;\n" +
-				"	suspend;\n" +
-				"end");
-			try
+			try (final PreparedStatement jarStmt = conn.prepareStatement(
+					"execute block (name type of column fb$java$jar.name = ?)\n" +
+					"	returns (id type of column fb$java$jar.id)\n" +
+					"as\n" +
+					"begin\n" +
+					"	insert into fb$java$jar (id, name, owner)\n" +
+					"		values (next value for fb$java$seq, :name, current_user)\n" +
+					"		returning id into id;\n" +
+					"	suspend;\n" +
+					"end")
+			)
 			{
+				final long jarId;
+
 				jarStmt.setString(1, name);
-				ResultSet rs = jarStmt.executeQuery();
-				rs.next();
-				long jarId = rs.getLong(1);
-				rs.close();
+				try (ResultSet rs = jarStmt.executeQuery())
+				{
+					rs.next();
+					jarId = rs.getLong(1);
+				}
 
 				//// TODO: manifest???
 				entryStmt = conn.prepareStatement(
@@ -213,10 +206,6 @@ public class Deployer
 
 				jarStream = new JarInputStream(url.openStream());
 				buffer = new byte[8192];
-			}
-			finally
-			{
-				jarStmt.close();
 			}
 		}
 
@@ -243,31 +232,31 @@ public class Deployer
 			if (entry == null)
 				return false;
 
-			Blob blob = conn.createBlob();
-			OutputStream out = blob.setBinaryStream(1);
 			try
 			{
-				for (int count; (count = jarStream.read(buffer)) != -1; )
-					out.write(buffer, 0, count);
+				final Blob blob = conn.createBlob();
+				try (final OutputStream out = blob.setBinaryStream(1))
+				{
+					for (int count; (count = jarStream.read(buffer)) != -1; )
+						out.write(buffer, 0, count);
+				}
+
+				className[0] = entry.getName();
+
+				entryStmt.setString(2, className[0]);
+				entryStmt.setBlob(3, blob);
+				entryStmt.execute();
 			}
 			finally
 			{
-				out.close();
+				jarStream.closeEntry();
 			}
-
-			className[0] = entry.getName();
-
-			entryStmt.setString(2, className[0]);
-			entryStmt.setBlob(3, blob);
-			entryStmt.execute();
-
-			jarStream.closeEntry();
 
 			return true;
 		}
 	}
 
-	private InstallJarResult doVerboseInstallJar(String url, String name, final String[] className,
+	private InstallJarResult doVerboseInstallJar(String url, final String name, final String[] className,
 		final boolean closeDeployer) throws Exception
 	{
 		if (url.indexOf("://") == -1)	// defaults to local files
@@ -289,33 +278,23 @@ public class Deployer
 		};
 	}
 
-	private void doRemoveJar(String name) throws Exception
+	private void doRemoveJar(final String name) throws Exception
 	{
-		PreparedStatement stmt = conn.prepareStatement(
-			"execute procedure sqlj.remove_jar(?)");
-		try
+		try (final PreparedStatement stmt = conn.prepareStatement(
+				"execute procedure sqlj.remove_jar(?)")
+		)
 		{
 			stmt.setString(1, name);
 			stmt.execute();
-		}
-		finally
-		{
-			stmt.close();
 		}
 	}
 
 	public static InstallJarResult verboseInstallJar(final String url, final String name,
 		final String[] className) throws Exception
 	{
-		Deployer deployer = new Deployer();
-		try
+		try (final Deployer deployer = new Deployer())
 		{
 			return deployer.doVerboseInstallJar(url, name, className, true);
-		}
-		catch (Exception e)
-		{
-			deployer.close();
-			throw e;
 		}
 	}
 
@@ -326,8 +305,8 @@ public class Deployer
 			if (args[i] == null)
 				continue;
 
-			boolean moreArgs = (i + 1 < args.length && !args[i + 1].startsWith("-"));
-			boolean more2Args = moreArgs && (i + 2 < args.length && !args[i + 2].startsWith("-"));
+			final boolean moreArgs = (i + 1 < args.length && !args[i + 1].startsWith("-"));
+			final boolean more2Args = moreArgs && (i + 2 < args.length && !args[i + 2].startsWith("-"));
 			boolean installPlugin = false;
 			boolean uninstallPlugin = false;
 			String installJar = null;
@@ -366,8 +345,8 @@ public class Deployer
 			{
 				if (installJar != null)
 				{
-					String[] className = new String[1];
-					InstallJarResult result = doVerboseInstallJar(args[i + 1], args[i + 2],
+					final String[] className = new String[1];
+					final InstallJarResult result = doVerboseInstallJar(args[i + 1], args[i + 2],
 						className, false);
 
 					while (result.fetch())
@@ -377,8 +356,8 @@ public class Deployer
 				{
 					doRemoveJar(args[i + 2]);
 
-					String[] className = new String[1];
-					InstallJarResult result = doVerboseInstallJar(args[i + 1], args[i + 2],
+					final String[] className = new String[1];
+					final InstallJarResult result = doVerboseInstallJar(args[i + 1], args[i + 2],
 						className, false);
 
 					while (result.fetch())
@@ -395,8 +374,8 @@ public class Deployer
 						// Do nothing, let remove fail.
 					}
 
-					String[] className = new String[1];
-					InstallJarResult result = doVerboseInstallJar(args[i + 1], args[i + 2],
+					final String[] className = new String[1];
+					final InstallJarResult result = doVerboseInstallJar(args[i + 1], args[i + 2],
 						className, false);
 
 					while (result.fetch())
@@ -421,7 +400,7 @@ public class Deployer
 		}
 	}
 
-	public static void main(String[] args) throws Exception
+	public static void main(final String[] args) throws Exception
 	{
 		Class.forName("org.firebirdsql.jdbc.FBDriver");
 
@@ -441,15 +420,10 @@ public class Deployer
 			return;
 		}
 
-		Deployer deployer = new Deployer(args);
-		try
+		try (final Deployer deployer = new Deployer(args))
 		{
 			deployer.doMain(args);
 			deployer.commit();
-		}
-		finally
-		{
-			deployer.close();
 		}
 	}
 }

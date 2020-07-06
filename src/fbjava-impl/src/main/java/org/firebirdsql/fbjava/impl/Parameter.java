@@ -21,14 +21,14 @@ package org.firebirdsql.fbjava.impl;
 
 final class Parameter
 {
-	Parameter(DataType dataType, Class<?> javaClass)
+	Parameter(final DataType dataType, final Class<?> javaClass)
 	{
 		this.dataType = dataType;
 		this.javaClass = javaClass;
 	}
 
-	DataType dataType;
-	Class<?> javaClass;
+	final DataType dataType;
+	final Class<?> javaClass;
 	DataType.Conversion conversion;
 	String name;
 	Pair<String, Integer> type;	// Pair of String, java.sql.Types.*

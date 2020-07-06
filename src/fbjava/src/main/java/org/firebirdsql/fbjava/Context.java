@@ -45,12 +45,12 @@ public interface Context
 			{
 				try
 				{
-					Class<?> clazz = Class.forName("org.firebirdsql.fbjava.impl.InternalContext");
-					Method method = clazz.getMethod("getContextImpl");
+					final Class<?> clazz = Class.forName("org.firebirdsql.fbjava.impl.InternalContext");
+					final Method method = clazz.getMethod("getContextImpl");
 					method.setAccessible(true);
 					return (Context) method.invoke(null);
 				}
-				catch (Exception e)
+				catch (final Exception e)
 				{
 					throw new RuntimeException(e);
 				}

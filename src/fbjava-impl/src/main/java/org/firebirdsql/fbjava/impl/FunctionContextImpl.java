@@ -23,7 +23,7 @@ import org.firebirdsql.fbjava.FunctionContext;
 
 class FunctionContextImpl extends CallableRoutineContextImpl implements FunctionContext
 {
-	public FunctionContextImpl(InternalContext internalContext)
+	public FunctionContextImpl(final InternalContext internalContext)
 	{
 		super(internalContext);
 	}

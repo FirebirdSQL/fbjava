@@ -24,21 +24,15 @@ OBJ_DIRS := $(addprefix $(OBJ_DIR)/,$(MODULES))
 SRCS := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 
-CXX_FLAGS := -ggdb -MMD -MP
-LD_FLAGS  :=
+CXX_FLAGS := -ggdb -MMD -MP -std=c++14
+LD_FLAGS  := -static-libgcc -static-libstdc++
 
-ifeq ($(OS),Windows_NT)
-LD_FLAGS  += -static-libgcc -static-libstdc++
-else
-CXX_FLAGS += -fPIC
+ifneq ($(OS),Windows_NT)
+CXX_FLAGS += -fPIC -fvisibility=hidden
 endif
 
 ifeq ($(TARGET),release)
 	CXX_FLAGS += -O3
-endif
-
-ifeq ($(TARGET),debug)
-	FPC_FLAGS += -g
 endif
 
 vpath %.cpp $(SRC_DIRS)

@@ -33,16 +33,16 @@ import com.sun.jna.Pointer;
 final class ExternalProcedure implements IExternalProcedureIntf
 {
 	private IExternalProcedure wrapper;
-	private Routine routine;
+	private final Routine routine;
 
 	private ExternalProcedure(Routine routine)
 	{
 		this.routine = routine;
 	}
 
-	public static IExternalProcedure create(Routine routine)
+	public static IExternalProcedure create(final Routine routine)
 	{
-		ExternalProcedure wrapped = new ExternalProcedure(routine);
+		final ExternalProcedure wrapped = new ExternalProcedure(routine);
 		wrapped.wrapper = JnaUtil.pin(new IExternalProcedure(wrapped));
 		return wrapped.wrapper;
 	}
@@ -65,10 +65,10 @@ final class ExternalProcedure implements IExternalProcedureIntf
 	{
 		try
 		{
-			int inCount = routine.inputParameters.size();
-			int outCount = routine.outputParameters.size();
-			Object[] inOut = new Object[inCount + outCount];
-			Object[] inOut2 = new Object[inCount + outCount];
+			final int inCount = routine.inputParameters.size();
+			final int outCount = routine.outputParameters.size();
+			final Object[] inOut = new Object[inCount + outCount];
+			final Object[] inOut2 = new Object[inCount + outCount];
 
 			boolean closeContext = true;
 
@@ -78,15 +78,15 @@ final class ExternalProcedure implements IExternalProcedureIntf
 
 			try
 			{
-				ThrowableRunnable preExecute = () -> {
+				final ThrowableRunnable preExecute = () -> {
 					routine.getFromMessage(status, context, routine.inputParameters, inMsg, inOut);
 
 					for (int i = inCount; i < inOut.length; ++i)
 						inOut[i] = Array.newInstance(routine.outputParameters.get(i - inCount).javaClass, 1);
 				};
 
-				ThrowableFunction<Object, IExternalResultSet> postExecute = out -> {
-					ExternalResultSet rs = (ExternalResultSet) out;
+				final ThrowableFunction<Object, IExternalResultSet> postExecute = out -> {
+					final ExternalResultSet rs = (ExternalResultSet) out;
 
 					if (rs == null)
 					{
@@ -104,10 +104,10 @@ final class ExternalProcedure implements IExternalProcedureIntf
 					}
 				};
 
-				InternalContext oldContext = InternalContext.set(internalContext);
+				final InternalContext oldContext = InternalContext.set(internalContext);
 				try
 				{
-					IExternalResultSet extResultSet = routine.run(status, context, inOut, preExecute, postExecute);
+					final IExternalResultSet extResultSet = routine.run(status, context, inOut, preExecute, postExecute);
 
 					if (extResultSet != null)
 						closeContext = false;
@@ -125,7 +125,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 					internalContext.close();
 			}
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 			return null;

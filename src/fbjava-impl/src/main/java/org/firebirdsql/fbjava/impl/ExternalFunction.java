@@ -29,16 +29,16 @@ import com.sun.jna.Pointer;
 final class ExternalFunction implements IExternalFunctionIntf
 {
 	private IExternalFunction wrapper;
-	private Routine routine;
+	private final Routine routine;
 
 	private ExternalFunction(Routine routine)
 	{
 		this.routine = routine;
 	}
 
-	public static IExternalFunction create(Routine routine)
+	public static IExternalFunction create(final Routine routine)
 	{
-		ExternalFunction wrapped = new ExternalFunction(routine);
+		final ExternalFunction wrapped = new ExternalFunction(routine);
 		wrapped.wrapper = JnaUtil.pin(new IExternalFunction(wrapped));
 		return wrapped.wrapper;
 	}
@@ -60,20 +60,20 @@ final class ExternalFunction implements IExternalFunctionIntf
 	{
 		try
 		{
-			Object[] in = new Object[routine.inputParameters.size()];
+			final Object[] in = new Object[routine.inputParameters.size()];
 
-			try (InternalContext internalContext = InternalContext.create(status, context, routine,
+			try (final InternalContext internalContext = InternalContext.create(status, context, routine,
 					new ValuesImpl(in, in.length), null))
 			{
-				ThrowableRunnable preExecute = () ->
+				final ThrowableRunnable preExecute = () ->
 					routine.getFromMessage(status, context, routine.inputParameters, inMsg, in);
 
-				ThrowableFunction<Object, Void> postExecute = out -> {
+				final ThrowableFunction<Object, Void> postExecute = out -> {
 					routine.putInMessage(status, context, routine.outputParameters, new Object[] {out}, 0, outMsg);
 					return null;
 				};
 
-				InternalContext oldContext = InternalContext.set(internalContext);
+				final InternalContext oldContext = InternalContext.set(internalContext);
 				try
 				{
 					routine.run(status, context, in, preExecute, postExecute);
@@ -84,7 +84,7 @@ final class ExternalFunction implements IExternalFunctionIntf
 				}
 			}
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 		}
