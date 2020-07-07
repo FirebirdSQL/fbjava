@@ -75,6 +75,8 @@ jobs:
         set FBJAVA_CONFIG=Release
         call bootstrap.bat install
         set FBJAVA_ROOT=%CD%\install
+        mkdir artifacts
+        xcopy /e install artifacts\fbjava-windows-x64\
         call run-maven.bat --batch-mode install -Dgpg.skip=true
         echo include %FBJAVA_ROOT%\conf\fbjava.conf >> %FIREBIRD%\plugins.conf
         cd %FBJAVA_ROOT%\examples\fbjava-example
@@ -96,4 +98,4 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: fbjava-windows-x64
-        path: install
+        path: artifacts
