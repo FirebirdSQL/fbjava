@@ -47,6 +47,42 @@
 				<directory>${build.dir}/${project.artifactId}</directory>
 			</build>
 		</profile>
+
+		<profile>
+			<id>all-modules</id>
+			<activation>
+				<property>
+					<name>!deploy</name>
+				</property>
+			</activation>
+			<modules>
+				<module>fbjava-impl</module>
+				<module>fbjava-tests</module>
+			</modules>
+		</profile>
+
+		<profile>
+			<!-- Use "mvn deploy -Ddeploy" to deploy. -->
+			<id>deploy</id>
+			<activation>
+				<property>
+					<name>deploy</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+					</plugin>
+
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 
 	<properties>
@@ -83,8 +119,6 @@
 
 	<modules>
 		<module>fbjava</module>
-		<module>fbjava-impl</module>
-		<module>fbjava-tests</module>
 	</modules>
 
 	<build>
@@ -97,16 +131,6 @@
 					<source>${java.version}</source>
 					<target>${java.version}</target>
 				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-gpg-plugin</artifactId>
-			</plugin>
-
-			<plugin>
-				<groupId>org.sonatype.plugins</groupId>
-				<artifactId>nexus-staging-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 
