@@ -34,7 +34,7 @@ final class Main
 	public static void initialize(final String nativeLibrary) throws ClassNotFoundException
 	{
 		//// FIXME: Receive the client library name from the plugin.
-		library = (FbClientLibrary) Native.loadLibrary("fbclient", FbClientLibrary.class);
+		library = (FbClientLibrary) Native.load("fbclient", FbClientLibrary.class);
 
 		//// FIXME: Receive the master interface from the plugin.
 		master = library.fb_get_master_interface();
