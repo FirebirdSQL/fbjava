@@ -52,8 +52,7 @@ To develop external routines using Java, Maven/Gradle users need to add this dep
 There are basically two ways to map database functions and procedures to Java
 methods. By fixed or generic signatures. Triggers can be mapped only with generic signatures.
 
-| NOTE: Generics here does not refer to Java generics in any way. |
-| --- |
+:information_source: Generics here does not refer to Java generics in any way.
 
 #### Fixed signatures
 
@@ -107,11 +106,11 @@ The plugin ships with a number of permissions grouped as `COMMON` and granted to
 | java.util.PropertyPermission | os.*            | read |
 | java.util.PropertyPermission | path.separator  | read |
 
-| WARNING: Permissions configured in java-security.fdb are valid only for classes stored inside databases. Classes at file system are granted `java.security.AllPermission`. |
-| --- |
+:warning: Permissions configured in java-security.fdb are valid only for classes stored inside
+databases. Classes at file system are granted `java.security.AllPermission`.
 
-| The `java.security.AllPermission` is effectively valid in this context if the code marks itself as privileged, like with `java.security.AccessController.doPrivileged` method. |
-| --- |
+:information_source: The `java.security.AllPermission` is effectively valid in this context if
+the code marks itself as privileged, like with `java.security.AccessController.doPrivileged` method.
 
 ### ClassLoaders
 
@@ -130,11 +129,11 @@ to the same database, but are reinitialized when a closed database is opened. In
 an application server, they are the application classes, although an application server does
 not reload application classes when the application is idle.
 
-| NOTE: Classes does not share static variables when used by different Classic or embedded processes. |
-| --- |
+:information_source: Classes does not share static variables when used by different Classic or
+embedded processes.
 
-| NOTE: Classes are unloaded by closing the database classloader. It is subject to garbage collection to really unload them. |
-| --- |
+:information_source: Classes are unloaded by closing the database classloader.
+It is subject to garbage collection to really unload them.
 
 Classes can be stored in the database by two different methods: the `fbjava-deployer`
 (`.bat` in Windows / `.sh` in Linux) utility or the `SQLJ` package.
@@ -157,17 +156,16 @@ install, remove and replace JAR files in databases. Its command line options are
 - `--install-plugin` - Installs the plugin in the database. The installation process consists of the
 creation of some database objects, prefixed with `FB$JAVA$` and the `SQLJ` package.
 
-| NOTE: Details of the install process can be seen in the install.sql file in the scripts directory of the plugin. |
-| --- |
+:information_source: Details of the install process can be seen in the install.sql file in the
+scripts directory of the plugin.
 
 - `--uninstall-plugin` - Uninstalls the plugin from the database. The uninstall process consists of dropping
 all the objects created by the installation process.
 
-| NOTE: Details of the uninstall process can be seen in the uninstall.sql file in the scripts directory of the plugin. |
-| --- |
+:information_source: Details of the uninstall process can be seen in the uninstall.sql file in the
+scripts directory of the plugin.
 
-| WARNING: All stored JARs are deleted when the plugin is uninstalled. |
-| --- |
+:warning: All stored JARs are deleted when the plugin is uninstalled.
 
 - `--install-jar <URL or filename> <name>` - Installs a JAR in the database. `<name>` is an unique
 identifier to refer to the JAR in subsequent calls, like `--replace-jar`,
@@ -211,11 +209,12 @@ signature, in this format:
   <fully qualified class name or unqualified class name from java.lang package>
 ```
 
-| NOTE: The java.lang package prefix may be avoided in parameters types but not in the class name containing the static method. |
-| --- |
+:information_source: The java.lang package prefix may be avoided in parameters types but not
+in the class name containing the static method.
 
-| NOTE: `<name info>` prefixed by an exclamation point is an optional info you can pass to the Java method that it can obtain with the method `getNameInfo` from the `Context` interface. |
-| --- |
+:information_source: `<name info>` prefixed by an exclamation point is an optional info you
+can pass to the Java method that it can obtain with the method `getNameInfo` from the
+`Context` interface.
 
 #### Supported Java types
 
@@ -243,14 +242,16 @@ signature, in this format:
 | java.sql.Timestamp   | any                      |       |
 | java.util.Date       | any                      |       |
 
-| NOTE: [1] A database NULL is converted to `0` (zero) when passed to a primitive numeric type and `false` to `boolean`. |
-| --- |
+:information_source: [1] A database NULL is converted to `0` (zero) when passed to
+a primitive numeric type and `false` to `boolean`.
 
-| NOTE: [2] Parameters and trigger values are converted accordingly to default mapping rules. |
-| --- |
+:information_source: [2] Parameters and trigger values are converted accordingly to
+default mapping rules.
 
-| NOTE: Any compatible type means the plugin doesn't care about the type, it just tries to get the value as a Firebird type compatible with the Java type. Basically, this means that a CAST will be done from the Firebird value to the default mapping type of the Java type, or vice-versa. |
-| --- |
+:information_source: Any compatible type means the plugin doesn't care about the
+type, it just tries to get the value as a Firebird type compatible with the Java type.
+Basically, this means that a CAST will be done from the Firebird value to the default
+mapping type of the Java type, or vice-versa.
 
 #### Default mappings
 
