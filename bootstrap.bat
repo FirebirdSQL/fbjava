@@ -43,13 +43,13 @@ mkdir ^
 	"%TARGET_DIR%\scripts" ^
 	"%TARGET_DIR%\examples"
 
+%CP% "%BASE_DIR%\README.md" "%TARGET_DIR%"
 %CP% "%BASE_DIR%\src\etc\bin\setenv.bat" "%TARGET_DIR%\bin"
 %CP% "%BASE_DIR%\src\etc\bin\fbjava-deployer.bat" "%TARGET_DIR%\bin"
 %CP% "%BASE_DIR%\build\java\fbjava\*.jar" "%TARGET_DIR%\jar"
 %CP% "%BASE_DIR%\build\java\fbjava-impl\*.jar" "%TARGET_DIR%\jar"
 %CP% "%BASE_DIR%\build\java\fbjava-impl\dependency\*.jar" "%TARGET_DIR%\jar"
 %CPR% "%BASE_DIR%\build\java\fbjava\site\apidocs" "%TARGET_DIR%\docs"
-%CP% "%BASE_DIR%\src\etc\doc\fbjava.pdf" "%TARGET_DIR%\docs"
 
 %CP% "%BASE_DIR%\build\src\native\fbjava\%FBJAVA_CONFIG%\libfbjava.dll" "%TARGET_DIR%\lib"
 
