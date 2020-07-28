@@ -88,14 +88,14 @@ jobs:
 
     - name: Upload (Linux)
       if: matrix.os == 'ubuntu-20.04'
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@main
       with:
         name: fbjava-linux-x64
         path: fbjava-linux-x64.tar.gz
 
     - name: Upload (Windows)
       if: matrix.os == 'windows-2019'
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@main
       with:
         name: fbjava-windows-x64
         path: artifacts
