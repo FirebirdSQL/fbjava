@@ -479,7 +479,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			}
 		}, new DataTypeReg(byte[].class, "byte[]"));
 
-		// java.sql.Blob
+		// java.sql.Blob and org.firebirdsql.jdbc.FirebirdBlob
 		addDataType(new DataType() {
 			@Override
 			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
@@ -581,7 +581,7 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 				};
 			}
-		}, new DataTypeReg(Blob.class, "java.sql.Blob"));
+		}, new DataTypeReg(Blob.class, "java.sql.Blob"), new DataTypeReg(org.firebirdsql.jdbc.FirebirdBlob.class, "org.firebirdsql.jdbc.FirebirdBlob"));
 
 		// short, Short
 		addDataType(new DataType() {
