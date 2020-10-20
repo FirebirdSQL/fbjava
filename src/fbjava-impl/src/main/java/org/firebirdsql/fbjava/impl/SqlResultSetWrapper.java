@@ -31,14 +31,14 @@ import java.sql.Types;
 final class SqlResultSetWrapper implements IExternalResultSetIntf
 {
 	private IExternalResultSet wrapper;
-	private Routine routine;
-	private IExternalContext context;
-	private InternalContext internalContext;
-	private Pointer outMsg;
-	private ResultSet rs;
-	private int inCount;
-	private Object[] inOut;
-	private Object[] inOut2;
+	private final Routine routine;
+	private final IExternalContext context;
+	private final InternalContext internalContext;
+	private final Pointer outMsg;
+	private final ResultSet rs;
+	private final int inCount;
+	private final Object[] inOut;
+	private final Object[] inOut2;
 
 	private SqlResultSetWrapper(Routine routine, IExternalContext context, InternalContext internalContext, Pointer outMsg,
 								ResultSet rs, int inCount, Object[] inOut, Object[] inOut2)
@@ -56,7 +56,7 @@ final class SqlResultSetWrapper implements IExternalResultSetIntf
 	public static IExternalResultSet create(Routine routine, IExternalContext context, InternalContext internalContext, Pointer outMsg,
 		ResultSet rs, int inCount, Object[] inOut, Object[] inOut2)
 	{
-		SqlResultSetWrapper wrapped = new SqlResultSetWrapper(routine, context, internalContext, outMsg, rs,
+		final SqlResultSetWrapper wrapped = new SqlResultSetWrapper(routine, context, internalContext, outMsg, rs,
 			inCount, inOut, inOut2);
 		wrapped.wrapper = JnaUtil.pin(new IExternalResultSet(wrapped));
 		return wrapped.wrapper;
@@ -67,10 +67,10 @@ final class SqlResultSetWrapper implements IExternalResultSetIntf
 	{
 		try
 		{
-			IStatus status = Main.master.getStatus();
+			final IStatus status = Main.master.getStatus();
 			try
 			{
-				InternalContext oldContext = InternalContext.set(internalContext);
+				final InternalContext oldContext = InternalContext.set(internalContext);
 				try
 				{
 					try
@@ -97,7 +97,7 @@ final class SqlResultSetWrapper implements IExternalResultSetIntf
 				status.dispose();
 			}
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			//// TODO: ???
 		}
@@ -112,7 +112,7 @@ final class SqlResultSetWrapper implements IExternalResultSetIntf
 
 		try
 		{
-			InternalContext oldContext = InternalContext.set(internalContext);
+			final InternalContext oldContext = InternalContext.set(internalContext);
 			try
 			{
 				return routine.engine.runInClassLoader(status, context,
@@ -145,7 +145,7 @@ final class SqlResultSetWrapper implements IExternalResultSetIntf
 				InternalContext.set(oldContext);
 			}
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 			return false;
