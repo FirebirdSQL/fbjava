@@ -19,6 +19,7 @@
 package org.firebirdsql.fbjava.impl;
 
 import java.lang.reflect.Array;
+import java.sql.ResultSet;
 
 import org.firebirdsql.fbjava.ExternalResultSet;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IExternalContext;
@@ -86,9 +87,7 @@ final class ExternalProcedure implements IExternalProcedureIntf
 				};
 
 				final ThrowableFunction<Object, IExternalResultSet> postExecute = out -> {
-					final ExternalResultSet rs = (ExternalResultSet) out;
-
-					if (rs == null)
+					if (out == null)
 					{
 						for (int i = inCount; i < inOut.length; ++i)
 							inOut2[i] = Array.get(inOut[i], 0);
@@ -96,11 +95,21 @@ final class ExternalProcedure implements IExternalProcedureIntf
 						routine.putInMessage(status, context, routine.outputParameters, inOut2, inCount, outMsg);
 						return null;
 					}
-					else
+					else if(ExternalResultSet.class.isAssignableFrom(out.getClass()))
 					{
 						return ExternalEngine.doPrivileged(() ->
-							ExternalResultSetWrapper.create(routine, context, internalContext, outMsg, rs, inCount, inOut, inOut2)
+								ExternalResultSetWrapper.create(routine, context, internalContext, outMsg, (ExternalResultSet) out, inCount, inOut, inOut2)
 						);
+					}
+					else if (ResultSet.class.isAssignableFrom(out.getClass()))
+					{
+						return ExternalEngine.doPrivileged(() ->
+								SqlResultSetWrapper.create(routine, context, internalContext, outMsg, (ResultSet) out, inCount, inOut, inOut2)
+						);
+					}
+					else
+					{
+						throw new UnsupportedOperationException(String.format("%s not supported", out.getClass().getName()));
 					}
 				};
 

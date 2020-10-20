@@ -19,6 +19,10 @@
 package example;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.firebirdsql.fbjava.CallableRoutineContext;
@@ -173,5 +177,12 @@ public class Procedures
 				return o.subtract(i).intValue() <= 5;
 			}
 		};
+	}
+
+	public static ResultSet testResultSet(long[] o1, String[] o2) throws SQLException {
+		Connection con = DriverManager.getConnection("jdbc:new:connection:");
+		PreparedStatement pstmt = con.prepareStatement(
+			"select mon$attachment_id, mon$user from mon$attachments where mon$attachment_id = current_connection");
+		return pstmt.executeQuery();
 	}
 }

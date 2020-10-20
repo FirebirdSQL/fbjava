@@ -298,7 +298,7 @@ create function funcSum4 (n1 integer, n2 integer, n3 integer, n4 integer) return
 
 #### Procedures mapping
 
-Procedures can have a return type (of `org.firebirdsql.fbjava.ExternalResultSet` type or a
+Procedures can have a return type (of `java.sql.ResultSet` type, `org.firebirdsql.fbjava.ExternalResultSet` type or a
 class implementing that interface) or `void`, depending of it being a selectable procedure or not.
 Output parameters should appear on the call specification as arrays. FB/Java pass each output
 parameter as an array of length 1, and routines can change their `[0]` element.
