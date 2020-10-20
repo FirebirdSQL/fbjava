@@ -180,7 +180,7 @@ public class Procedures
 	}
 
 	public static ResultSet testResultSet(long[] o1, String[] o2) throws SQLException {
-		Connection con = DriverManager.getConnection("jdbc:new:connection:");
+		Connection con = DriverManager.getConnection("jdbc:default:connection:");
 		PreparedStatement pstmt = con.prepareStatement(
 			"select mon$attachment_id, mon$user from mon$attachments where mon$attachment_id = current_connection");
 		return pstmt.executeQuery();
