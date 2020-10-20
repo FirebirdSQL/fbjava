@@ -216,31 +216,33 @@ in the class name containing the static method.
 can pass to the Java method that it can obtain with the method `getNameInfo` from the
 `Context` interface.
 
-#### Supported Java types
+#### Supported Java and Jaybird types
 
-| Java Type            | Compatible Firebird type | Notes |
-| -------------------- | ------------------------ | ----- |
-| byte[]               | BLOB, CHAR, VARCHAR      |       |
-| boolean              | any                      | [1]   |
-| short                | any                      | [1]   |
-| int                  | any                      | [1]   |
-| long                 | any                      | [1]   |
-| float                | any                      | [1]   |
-| double               | any                      | [1]   |
-| java.lang.Boolean    | any                      |       |
-| java.lang.Short      | any                      |       |
-| java.lang.Integer    | any                      |       |
-| java.lang.Long       | any                      |       |
-| java.lang.Float      | any                      |       |
-| java.lang.Double     | any                      |       |
-| java.lang.Object     | any                      | [2]   |
-| java.lang.String     | any                      |       |
-| java.math.BigDecimal | any                      |       |
-| java.sql.Blob        | BLOB                     |       |
-| java.sql.Date        | any                      |       |
-| java.sql.Time        | any                      |       |
-| java.sql.Timestamp   | any                      |       |
-| java.util.Date       | any                      |       |
+| Java or Jaybird Type             | Compatible Firebird type | Notes |
+| --------------------------------- | ------------------------ | ----- |
+| byte[]                            | BLOB, CHAR, VARCHAR      |       |
+| boolean                           | any                      | [1]   |
+| short                             | any                      | [1]   |
+| int                               | any                      | [1]   |
+| long                              | any                      | [1]   |
+| float                             | any                      | [1]   |
+| double                            | any                      | [1]   |
+| java.lang.Boolean                 | any                      |       |
+| java.lang.Short                   | any                      |       |
+| java.lang.Integer                 | any                      |       |
+| java.lang.Long                    | any                      |       |
+| java.lang.Float                   | any                      |       |
+| java.lang.Double                  | any                      |       |
+| java.lang.Object                  | any                      | [2]   |
+| java.lang.String                  | any                      |       |
+| java.math.BigDecimal              | any                      |       |
+| java.sql.Blob                     | BLOB                     |       |
+| java.sql.Date                     | any                      |       |
+| java.sql.Time                     | any                      |       |
+| java.sql.Timestamp                | any                      |       |
+| java.util.Date                    | any                      |       |
+| org.firebirdsql.jdbc.FirebirdBlob | BLOB                     |       |
+
 
 :information_source: [1] A database NULL is converted to `0` (zero) when passed to
 a primitive numeric type and `false` to `boolean`.
