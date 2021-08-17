@@ -406,6 +406,7 @@ static void init()
 	}
 
 	fs::path libFile;
+	string fbclientName("fbclient");
 
 #ifdef WIN32
 	{	// scope
@@ -562,14 +563,35 @@ static void init()
 	if (!mainCls)
 		checkJavaException(env);
 
-	const auto mainInitializeId = getStaticMethodID(env, mainCls.get(), "initialize", "(Ljava/lang/String;)V");
+	const auto mainInitializeId = getStaticMethodID(env, mainCls.get(), "initialize", "(Ljava/lang/String;Ljava/lang/String;Lcom/sun/jna/Pointer;)V");
 	checkJavaException(env);
 
 	const auto nativeLibrary = jniLocalRef(env, env->NewStringUTF(libFile.string().c_str()));
 	if (!nativeLibrary)
 		checkJavaException(env);
 
-	env->CallStaticVoidMethod(mainCls.get(), mainInitializeId, nativeLibrary.get());
+	const auto fbclientLibrary = jniLocalRef(env, env->NewStringUTF(fbclientName.c_str()));
+	if (!fbclientLibrary)
+		checkJavaException(env);
+
+	// create a pointer to the IMaster interface
+	const auto jmaster = (jlong)(master);
+
+	const auto jnaPointerName = jniLocalRef(env, env->NewStringUTF("com.sun.jna.Pointer"));
+	if (!jnaPointerName)
+		checkJavaException(env);
+	const auto jnaPointerCls = jniLocalRef(env, (jclass) env->CallObjectMethod(classLoader.get(), urlClassLoaderLoadClassId,
+		jnaPointerName.get(), true));
+	if (!jnaPointerCls)
+		checkJavaException(env);
+
+	const auto jnaPointerInitId = getMethodID(env, jnaPointerCls.get(), "<init>", "(J)V");
+	const auto masterPointer = env->NewObject(jnaPointerCls.get(), jnaPointerInitId, jmaster);
+	if (!masterPointer)
+		checkJavaException(env);
+	const auto jMasterPtr = jniLocalRef(env, masterPointer);
+
+	env->CallStaticVoidMethod(mainCls.get(), mainInitializeId, nativeLibrary.get(), fbclientLibrary.get(), jMasterPtr.get());
 	checkJavaException(env);
 }
 
