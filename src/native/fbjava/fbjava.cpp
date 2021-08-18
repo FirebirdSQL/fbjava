@@ -66,10 +66,12 @@ using std::vector;
 
 
 #ifdef WIN32
-static const char DEFAULT_PATH_SEP = '\\';
+static const char DEFAULT_SEPARATOR = '\\';
+static const char DEFAULT_PATH_SEPARATOR = ';';
 static HMODULE hDllInstance = nullptr;
 #else
-static const char DEFAULT_PATH_SEP = '/';
+static const char DEFAULT_SEPARATOR = '/';
+static const char DEFAULT_PATH_SEPARATOR = ':';
 #endif
 
 
@@ -371,6 +373,7 @@ static void init()
 {
 	string javaHome;
 	vector<string> jvmArgs;
+	string jnaLibPathOpt("-Djna.library.path");
 
 	try
 	{
@@ -403,6 +406,34 @@ static void init()
 	catch (const FbException&)
 	{
 		throw runtime_error("Error looking for JavaHome in the config file.");
+	}
+
+	string jnaLibPath;
+#ifdef WIN32
+	jnaLibPath = master->getConfigManager()->getRootDirectory();
+#else
+	jnaLibPath = master->getConfigManager()->getDirectory(IConfigManager::DIR_LIB);
+#endif
+	transform(jvmArgs.begin(), jvmArgs.end(), jvmArgs.begin(),
+		[&jnaLibPathOpt, &jnaLibPath](string& arg)
+	{
+		if (arg.length() >= jnaLibPathOpt.length() && arg.compare(0, jnaLibPathOpt.length(), jnaLibPathOpt) == 0)
+		{
+			arg.append(1, DEFAULT_PATH_SEPARATOR);
+			arg.append(jnaLibPath);
+			jnaLibPath.clear();
+		}
+		return arg;
+	}
+	);
+	if (!jnaLibPath.empty())
+	{
+		{ // scope
+			string jvmLibPath(jnaLibPathOpt);
+			jvmLibPath.append(1, '=');
+			jvmLibPath.append(jnaLibPath);
+			jvmArgs.push_back(jvmLibPath);
+		}
 	}
 
 	fs::path libFile;
