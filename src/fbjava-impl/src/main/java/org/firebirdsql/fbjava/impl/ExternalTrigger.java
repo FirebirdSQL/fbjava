@@ -31,16 +31,16 @@ import com.sun.jna.Pointer;
 final class ExternalTrigger implements IExternalTriggerIntf
 {
 	private IExternalTrigger wrapper;
-	private Routine routine;
+	private final Routine routine;
 
-	private ExternalTrigger(Routine routine)
+	private ExternalTrigger(final Routine routine)
 	{
 		this.routine = routine;
 	}
 
-	public static IExternalTrigger create(Routine routine)
+	public static IExternalTrigger create(final Routine routine)
 	{
-		ExternalTrigger wrapped = new ExternalTrigger(routine);
+		final ExternalTrigger wrapped = new ExternalTrigger(routine);
 		wrapped.wrapper = JnaUtil.pin(new IExternalTrigger(wrapped));
 		return wrapped.wrapper;
 	}
@@ -63,16 +63,17 @@ final class ExternalTrigger implements IExternalTriggerIntf
 	{
 		try
 		{
-			List<Parameter> fieldParameters = routine.inputParameters;
-			int count = fieldParameters.size();
-			Object[] oldValues = oldMsg == null ? null : new Object[count];
-			Object[] newValues = newMsg == null ? null : new Object[count];
+			final List<Parameter> fieldParameters = routine.inputParameters;
+			final int count = fieldParameters.size();
+			final Object[] oldValues = oldMsg == null ? null : new Object[count];
+			final Object[] newValues = newMsg == null ? null : new Object[count];
 
-			try (InternalContext internalContext = InternalContext.createTrigger(status, context, routine, action,
+			try (final InternalContext internalContext = InternalContext.createTrigger(
+					status, context, routine, action,
 					(oldMsg == null ? null : new ValuesImpl(oldValues, count)),
 					(newMsg == null ? null : new ValuesImpl(newValues, count))))
 			{
-				ThrowableRunnable preExecute = () -> {
+				final ThrowableRunnable preExecute = () -> {
 					if (oldMsg != null)
 						routine.getFromMessage(status, context, fieldParameters, oldMsg, oldValues);
 
@@ -80,13 +81,13 @@ final class ExternalTrigger implements IExternalTriggerIntf
 						routine.getFromMessage(status, context, fieldParameters, newMsg, newValues);
 				};
 
-				ThrowableFunction<Object, Void> postExecute = out -> {
+				final ThrowableFunction<Object, Void> postExecute = out -> {
 					if (newMsg != null)
 						routine.putInMessage(status, context, fieldParameters, newValues, 0, newMsg);
 					return null;
 				};
 
-				InternalContext oldContext = InternalContext.set(internalContext);
+				final InternalContext oldContext = InternalContext.set(internalContext);
 				try
 				{
 					routine.run(status, context, null, preExecute, postExecute);
@@ -95,10 +96,9 @@ final class ExternalTrigger implements IExternalTriggerIntf
 				{
 					InternalContext.set(oldContext);
 				}
-
 			}
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 		}

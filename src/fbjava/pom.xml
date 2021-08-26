@@ -7,13 +7,38 @@
 	<parent>
 		<groupId>org.firebirdsql.fbjava</groupId>
 		<artifactId>fbjava-parent</artifactId>
-		<version>1.0.0-alpha-1</version>
+		<version>1.0.0-beta-1</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>fbjava</artifactId>
-	<name>fbjava</name>
 	<packaging>jar</packaging>
+
+	<name>${project.groupId}:${project.artifactId}</name>
+	<description>Java plugin for Firebird Database</description>
+	<url>https://github.com/FirebirdSQL/fbjava</url>
+
+	<licenses>
+		<license>
+			<name>LGPL</name>
+			<url>http://www.gnu.org/copyleft/lgpl.html</url>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Adriano dos Santos Fernandes</name>
+			<email>adrianosf@gmail.com</email>
+			<organization>FirebirdSQL</organization>
+			<organizationUrl>https://github.com/FirebirdSQL</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/FirebirdSQL/fbjava.git</connection>
+		<developerConnection>scm:git:ssh://github.com:FirebirdSQL/fbjava.git</developerConnection>
+		<url>http://github.com/FirebirdSQL/fbjava/tree/master</url>
+	</scm>
 
 	<build>
 		<plugins>
@@ -26,7 +51,21 @@
 			</plugin>
 
 			<plugin>
+				<artifactId>maven-install-plugin</artifactId>
+			</plugin>
+
+			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>

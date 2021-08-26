@@ -5,24 +5,20 @@
 	<groupId>org.firebirdsql.fbjava</groupId>
 	<artifactId>fbjava-example</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.0-alpha-1</version>
+	<version>1.0.0-beta-1</version>
 	<name>fbjava-example</name>
 	<url></url>
 
 	<properties>
-		<fbjava.version>1.0.0-alpha-1</fbjava.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>1.8</java.version>
+
+		<fbjava.version>1.0.0-beta-1</fbjava.version>
 		<slf4j.version>1.7.13</slf4j.version>
-		<logback.version>1.1.3</logback.version>
+		<logback.version>1.2.0</logback.version>
 		<maven-assembly-plugin.version>2.2-beta-3</maven-assembly-plugin.version>
 		<postgresql.version>8.3-603.jdbc4</postgresql.version>
 	</properties>
-
-	<repositories>
-		<repository>
-			<id>fbjava</id>
-			<url>https://raw.githubusercontent.com/asfernandes/fbjava-maven/master/maven2</url>
-		</repository>
-	</repositories>
 
 	<dependencies>
 		<dependency>
@@ -63,6 +59,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
 				<configuration>
 					<source>1.8</source>
 					<target>1.8</target>
@@ -72,6 +69,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.1.2</version>
 				<executions>
 					<execution>
 						<id>copy-dependencies</id>

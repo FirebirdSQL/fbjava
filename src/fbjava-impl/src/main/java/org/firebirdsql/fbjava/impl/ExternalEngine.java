@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -70,6 +71,7 @@ import org.firebirdsql.gds.ISCConstants;
 import org.firebirdsql.gds.impl.GDSHelper;
 import org.firebirdsql.jdbc.FBBlob;
 import org.firebirdsql.jdbc.FBConnection;
+import org.firebirdsql.jdbc.FirebirdBlob;
 
 import com.sun.jna.Pointer;
 
@@ -77,35 +79,35 @@ import com.sun.jna.Pointer;
 final class ExternalEngine implements IExternalEngineIntf
 {
 	private static final IEncodingFactory encodingFactory = EncodingFactory.getPlatformDefault();
-	private static Map<String, SharedData> sharedDataMap = new ConcurrentHashMap<>();
-	static Map<Integer, Pair<String, Integer>> fbTypeNames;
-	static Map<Class<?>, DataType> dataTypesByClass;
-	private static Map<String, Class<?>> javaClassesByName;
-	private static Map<Integer, DataType> defaultDataTypes;
+	private static final Map<String, SharedData> sharedDataMap = new ConcurrentHashMap<>();
+	static final Map<Integer, Pair<String, Integer>> fbTypeNames;
+	static final Map<Class<?>, DataType> dataTypesByClass;
+	private static final Map<String, Class<?>> javaClassesByName;
+	private static final Map<Integer, DataType> defaultDataTypes;
 	private IExternalEngine wrapper;
-	private AtomicInteger refCounter = new AtomicInteger(1);
+	private final AtomicInteger refCounter = new AtomicInteger(1);
 	private SharedData sharedData;
 
-	private static class DataTypeReg
+	private static final class DataTypeReg
 	{
-		DataTypeReg(Class<?> javaClass, String... names)
+		DataTypeReg(final Class<?> javaClass, final String... names)
 		{
 			this.javaClass = javaClass;
 			this.names = names;
 		}
 
-		Class<?> javaClass;
-		String[] names;
+		final Class<?> javaClass;
+		final String[] names;
 	}
 
-	private static class SharedData
+	private static final class SharedData
 	{
-		AtomicInteger attachmentCounter = new AtomicInteger(0);
-		DbClassLoader classLoader;
+		final AtomicInteger attachmentCounter = new AtomicInteger(0);
+		final DbClassLoader classLoader;
 
-		SharedData(String databaseName) throws SQLException, MalformedURLException
+		SharedData(final String databaseName) throws SQLException, MalformedURLException
 		{
-			URL contextUrl = new URL(null, "fbjava:/", new URLStreamHandler() {
+			final URL contextUrl = new URL(null, "fbjava:/", new URLStreamHandler() {
 				@Override
 				protected URLConnection openConnection(URL url) throws IOException
 				{
@@ -116,12 +118,12 @@ final class ExternalEngine implements IExternalEngineIntf
 			classLoader = new DbClassLoader(databaseName, contextUrl, getClass().getClassLoader());
 		}
 
-		void openAttachment(IStatus status, IExternalContext context)
+		void openAttachment(final IStatus status, final IExternalContext context)
 		{
 			attachmentCounter.incrementAndGet();
 		}
 
-		boolean closeAttachment(IStatus status, IExternalContext context) throws IOException
+		boolean closeAttachment(final IStatus status, final IExternalContext context) throws IOException
 		{
 			if (attachmentCounter.decrementAndGet() == 0)
 			{
@@ -133,7 +135,7 @@ final class ExternalEngine implements IExternalEngineIntf
 		}
 	}
 
-	private ExternalEngine(String securityDatabase)
+	private ExternalEngine(final String securityDatabase)
 	{
 	}
 
@@ -164,12 +166,13 @@ final class ExternalEngine implements IExternalEngineIntf
 		// String
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
-				int type = metadata.getType(status, index);
+				final int type = metadata.getType(status, index);
 				int length = metadata.getLength(status, index);
-				Encoding encoding = encodingFactory.getEncodingForCharacterSetId(metadata.getCharSet(status, index));
+				final Encoding encoding =
+					encodingFactory.getEncodingForCharacterSetId(metadata.getCharSet(status, index));
 
 				switch (type)
 				{
@@ -182,13 +185,13 @@ final class ExternalEngine implements IExternalEngineIntf
 
 					case ISCConstants.SQL_BLOB:
 					{
-						Conversion byteConversion = dataTypesByClass.get(byte[].class).setupConversion(status,
-							byte[].class, metadata, builder, index);
+						final Conversion byteConversion = dataTypesByClass.get(byte[].class).setupConversion(
+							status, byte[].class, metadata, builder, index);
 
 						return new Conversion() {
 							@Override
-							Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-								int nullOffset, int offset) throws FbException
+							Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+								final int nullOffset, final int offset) throws FbException
 							{
 								if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 									return null;
@@ -198,7 +201,7 @@ final class ExternalEngine implements IExternalEngineIntf
 							}
 
 							@Override
-							Object getFromMessageUnprivileged(IExternalContext context, Object result)
+							Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 								throws FbException
 							{
 								return encoding.decodeFromCharset(
@@ -206,18 +209,20 @@ final class ExternalEngine implements IExternalEngineIntf
 							}
 
 							@Override
-							Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException
+							Object putInMessageUnprivileged(final IExternalContext context, final Object o)
+								throws FbException
 							{
 								if (o == null)
 									return null;
 
-								byte[] bytes = encoding.encodeToCharset((String) o);
+								final byte[] bytes = encoding.encodeToCharset((String) o);
 								return byteConversion.putInMessageUnprivileged(context, bytes);
 							}
 
 							@Override
-							void putInMessagePrivileged(IExternalContext context, Pointer message,
-								int nullOffset, int offset, Object o, Object result) throws FbException
+							void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+								final int nullOffset, final int offset, final Object o, final Object result)
+									throws FbException
 							{
 								byteConversion.putInMessagePrivileged(context, message, nullOffset, offset, o, result);
 							}
@@ -241,7 +246,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 					default:
 					{
-						String typeName = Optional.ofNullable(fbTypeNames.get(type))
+						final String typeName = Optional.ofNullable(fbTypeNames.get(type))
 							.map(Pair::getFirst)
 							.orElse(String.valueOf(type));
 
@@ -254,29 +259,29 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
 
-						int length = Short.toUnsignedInt(message.getShort(offset));
+						final int length = Short.toUnsignedInt(message.getShort(offset));
 						return message.getByteArray(offset + 2, length);
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return encoding.decodeFromCharset((byte[]) result);
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o) throws FbException
 					{
 						if (o == null)
 							return null;
 
-						byte[] bytes = encoding.encodeToCharset((String) o);
+						final byte[] bytes = encoding.encodeToCharset((String) o);
 
 						if (bytes.length > finalLength)
 						{
@@ -289,14 +294,14 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset, Object o, Object result)
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result)
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
-							byte[] bytes = (byte[]) result;
+							final byte[] bytes = (byte[]) result;
 
 							message.setShort(nullOffset, NOT_NULL_FLAG);
 							message.setShort(offset, (short) bytes.length);
@@ -310,11 +315,11 @@ final class ExternalEngine implements IExternalEngineIntf
 		// byte[]
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
-				int type = metadata.getType(status, index);
-				int length = metadata.getLength(status, index);
+				final int type = metadata.getType(status, index);
+				final int length = metadata.getLength(status, index);
 
 				switch (type)
 				{
@@ -328,7 +333,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 					default:
 					{
-						String typeName = Optional.ofNullable(fbTypeNames.get(type))
+						final String typeName = Optional.ofNullable(fbTypeNames.get(type))
 							.map(Pair::getFirst)
 							.orElse(String.valueOf(type));
 
@@ -341,8 +346,8 @@ final class ExternalEngine implements IExternalEngineIntf
 				{
 					return new Conversion() {
 						@Override
-						Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-							int nullOffset, int offset)
+						Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+							final int nullOffset, final int offset)
 						{
 							if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 								return null;
@@ -351,24 +356,25 @@ final class ExternalEngine implements IExternalEngineIntf
 						}
 
 						@Override
-						Object getFromMessageUnprivileged(IExternalContext context, Object result) throws FbException
+						Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
+							throws FbException
 						{
-							long blobId = (long) result;
+							final long blobId = (long) result;
 
 							try
 							{
-								FBConnection connection = (FBConnection) InternalContext.get().getConnection();
-								GDSHelper gdsHelper = connection.getGDSHelper();
-								FBBlob blob = new FBBlob(gdsHelper, blobId);
+								final FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+								final GDSHelper gdsHelper = connection.getGDSHelper();
+								final FBBlob blob = new FBBlob(gdsHelper, blobId);
 
-								try (InputStream in = blob.getBinaryStream())
+								try (final InputStream in = blob.getBinaryStream())
 								{
-									byte[] bytes = new byte[(int) blob.length()];
+									final byte[] bytes = new byte[(int) blob.length()];
 									in.read(bytes);
 									return bytes;
 								}
 							}
-							catch (Exception e)
+							catch (final Exception e)
 							{
 								FbException.rethrow(e);
 								return null;
@@ -376,26 +382,26 @@ final class ExternalEngine implements IExternalEngineIntf
 						}
 
 						@Override
-						Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException
+						Object putInMessageUnprivileged(final IExternalContext context, final Object o) throws FbException
 						{
 							if (o == null)
 								return null;
 
-							byte[] bytes = (byte[]) o;
+							final byte[] bytes = (byte[]) o;
 
 							try
 							{
-								FBConnection connection = (FBConnection) InternalContext.get().getConnection();
-								FBBlob blob = (FBBlob) connection.createBlob();
+								final FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+								final FBBlob blob = (FBBlob) connection.createBlob();
 
-								try (OutputStream out = blob.setBinaryStream(1))
+								try (final OutputStream out = blob.setBinaryStream(1))
 								{
 									out.write(bytes);
 								}
 
 								return blob.getBlobId();
 							}
-							catch (Exception e)
+							catch (final Exception e)
 							{
 								FbException.rethrow(e);
 							}
@@ -404,14 +410,14 @@ final class ExternalEngine implements IExternalEngineIntf
 						}
 
 						@Override
-						void putInMessagePrivileged(IExternalContext context, Pointer message,
-							int nullOffset, int offset, Object o, Object result)
+						void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+							final int nullOffset, final int offset, final Object o, final Object result)
 						{
 							if (result == null)
 								message.setShort(nullOffset, NULL_FLAG);
 							else
 							{
-								long blobId = (long) result;
+								final long blobId = (long) result;
 
 								message.setShort(nullOffset, NOT_NULL_FLAG);
 								message.setShort(nullOffset, NOT_NULL_FLAG);
@@ -424,37 +430,38 @@ final class ExternalEngine implements IExternalEngineIntf
 				{
 					return new Conversion() {
 						@Override
-						Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-							int nullOffset, int offset)
+						Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+							final int nullOffset, final int offset)
 						{
 							if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 								return null;
 
-							int length = Short.toUnsignedInt(message.getShort(offset));
+							final int length = Short.toUnsignedInt(message.getShort(offset));
 							return message.getByteArray(offset + 2, length);
 						}
 
 						@Override
-						Object getFromMessageUnprivileged(IExternalContext context, Object result)
+						Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 						{
 							return result;
 						}
 
 						@Override
-						Object putInMessageUnprivileged(IExternalContext context, Object o)
+						Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 						{
 							return o;
 						}
 
 						@Override
-						void putInMessagePrivileged(IExternalContext context, Pointer message,
-							int nullOffset, int offset, Object o, Object result) throws FbException
+						void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+							final int nullOffset, final int offset, final Object o, final Object result)
+								throws FbException
 						{
 							if (result == null)
 								message.setShort(nullOffset, NULL_FLAG);
 							else
 							{
-								byte[] bytes = (byte[]) result;
+								final byte[] bytes = (byte[]) result;
 
 								if (bytes.length > length)
 								{
@@ -473,13 +480,13 @@ final class ExternalEngine implements IExternalEngineIntf
 			}
 		}, new DataTypeReg(byte[].class, "byte[]"));
 
-		// java.sql.Blob
+		// java.sql.Blob and org.firebirdsql.jdbc.FirebirdBlob
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
-				int type = metadata.getType(status, index);
+				final int type = metadata.getType(status, index);
 
 				if (type != ISCConstants.SQL_BLOB)
 				{
@@ -493,8 +500,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -503,18 +510,19 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result) throws FbException
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
+						throws FbException
 					{
 						try
 						{
-							long blobId = (long) result;
+							final long blobId = (long) result;
 
-							FBConnection connection = (FBConnection) InternalContext.get().getConnection();
-							GDSHelper gdsHelper = connection.getGDSHelper();
+							final FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+							final GDSHelper gdsHelper = connection.getGDSHelper();
 
 							return new FBBlob(gdsHelper, blobId);
 						}
-						catch (Exception e)
+						catch (final Exception e)
 						{
 							FbException.rethrow(e);
 							return null;
@@ -522,17 +530,17 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o) throws FbException
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o) throws FbException
 					{
 						if (o == null)
 							return o;
 
-						Blob blob = (Blob) o;
+						final Blob blob = (Blob) o;
 
 						try
 						{
-							FBConnection connection = (FBConnection) InternalContext.get().getConnection();
-							FBBlob fbBlob;
+							final FBConnection connection = (FBConnection) InternalContext.get().getConnection();
+							final FBBlob fbBlob;
 
 							if (blob instanceof FBBlob &&
 								(fbBlob = (FBBlob) blob).getGdsHelper() == connection.getGDSHelper())
@@ -541,7 +549,7 @@ final class ExternalEngine implements IExternalEngineIntf
 							}
 							else
 							{
-								FBBlob outBlob = (FBBlob) connection.createBlob();
+								final FBBlob outBlob = (FBBlob) connection.createBlob();
 
 								try (InputStream in = blob.getBinaryStream())
 								{
@@ -551,7 +559,7 @@ final class ExternalEngine implements IExternalEngineIntf
 								return outBlob.getBlobId();
 							}
 						}
-						catch (Exception e)
+						catch (final Exception e)
 						{
 							FbException.rethrow(e);
 							return null;
@@ -559,14 +567,14 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset, Object o, Object result) throws FbException
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result) throws FbException
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
-							long blobId = (long) result;
+							final long blobId = (long) result;
 
 							message.setShort(nullOffset, NOT_NULL_FLAG);
 							message.setLong(offset, blobId);
@@ -574,21 +582,21 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 				};
 			}
-		}, new DataTypeReg(Blob.class, "java.sql.Blob"));
+		}, new DataTypeReg(Blob.class, "java.sql.Blob"), new DataTypeReg(FirebirdBlob.class, "org.firebirdsql.jdbc.FirebirdBlob"));
 
 		// short, Short
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_SHORT);
 				builder.setScale(status, index, 0);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == short.class ? (Short)(short) 0 : null) :
@@ -596,20 +604,20 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						return o;
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
-						Object o, Object result)
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message, final int nullOffset, final int offset,
+						final Object o, final Object result)
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -626,16 +634,16 @@ final class ExternalEngine implements IExternalEngineIntf
 		// int, Integer
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_LONG);
 				builder.setScale(status, index, 0);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == int.class ? (Integer) 0 : null) :
@@ -643,20 +651,20 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						return o;
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
-						Object o, Object result)
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message, final int nullOffset, final int offset,
+						final Object o, final Object result)
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -673,16 +681,16 @@ final class ExternalEngine implements IExternalEngineIntf
 		// long, Long
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_INT64);
 				builder.setScale(status, index, 0);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == long.class ? (Long) 0L : null) :
@@ -690,20 +698,20 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						return o;
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
-						Object o, Object result)
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result)
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -720,15 +728,15 @@ final class ExternalEngine implements IExternalEngineIntf
 		// float, Float
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_FLOAT);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == float.class ? (Float) 0.0f : null) :
@@ -736,20 +744,20 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						return o;
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
-						Object o, Object result)
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result)
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -766,15 +774,15 @@ final class ExternalEngine implements IExternalEngineIntf
 		// double, Double
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_DOUBLE);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == double.class ? (Double) 0.0 : null) :
@@ -782,20 +790,20 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						return o;
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
-						Object o, Object result)
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result)
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -812,11 +820,11 @@ final class ExternalEngine implements IExternalEngineIntf
 		// BigDecimal
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
-				int initialType = metadata.getType(status, index);
-				int initialScale = metadata.getScale(status, index);
+				final int initialType = metadata.getType(status, index);
+				final int initialScale = metadata.getScale(status, index);
 				final int type;
 				final int scale;
 
@@ -841,8 +849,8 @@ final class ExternalEngine implements IExternalEngineIntf
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
@@ -882,18 +890,18 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						if (o == null)
 							return null;
 
-						BigDecimal bigVal = (BigDecimal) o;
+						final BigDecimal bigVal = (BigDecimal) o;
 
 						switch (type)
 						{
@@ -904,7 +912,7 @@ final class ExternalEngine implements IExternalEngineIntf
 								return bigVal.doubleValue();
 						}
 
-						BigInteger bigInt = bigVal.setScale(-scale, BigDecimal.ROUND_HALF_UP).unscaledValue();
+						BigInteger bigInt = bigVal.setScale(-scale, RoundingMode.HALF_UP).unscaledValue();
 
 						//// FIXME: overflow
 
@@ -926,8 +934,8 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset, Object o, Object result)
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result)
 					{
 						if (result == null)
 						{
@@ -957,20 +965,20 @@ final class ExternalEngine implements IExternalEngineIntf
 		// java.util.Date, java.sql.Date
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_TYPE_DATE);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
 
-						long t = fbDateToJava(message.getInt(offset));
+						final long t = fbDateToJava(message.getInt(offset));
 
 						if (javaClass == java.util.Date.class)
 							return new java.util.Date(t);
@@ -979,13 +987,13 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						if (o == null)
 							return null;
@@ -994,14 +1002,14 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset, Object o, Object result) throws FbException
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result) throws FbException
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
-							long t = (long) result;
+							final long t = (long) result;
 
 							message.setShort(nullOffset, NOT_NULL_FLAG);
 							message.setInt(offset, javaDateToFb(t));
@@ -1014,32 +1022,32 @@ final class ExternalEngine implements IExternalEngineIntf
 		// java.sql.Time
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_TYPE_TIME);
 				builder.setScale(status, index, 0);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
 
-						long t = fbTimeToJava(message.getInt(offset));
+						final long t = fbTimeToJava(message.getInt(offset));
 						return new java.sql.Time(t);
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						if (o == null)
 							return null;
@@ -1048,14 +1056,14 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset, Object o, Object result) throws FbException
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result) throws FbException
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
-							long t = (long) result;
+							final long t = (long) result;
 
 							message.setShort(nullOffset, NOT_NULL_FLAG);
 							message.setInt(offset, javaTimeToFb(t));
@@ -1068,35 +1076,35 @@ final class ExternalEngine implements IExternalEngineIntf
 		// java.sql.Timestamp
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_TIMESTAMP);
 				builder.setScale(status, index, 0);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						if (message.getShort(nullOffset) != NOT_NULL_FLAG)
 							return null;
 
-						long date = fbDateToJava(message.getInt(offset));
-						long time = fbTimeToJava(message.getInt(offset + 4));
-						java.sql.Time baseTime = new Time(0);
+						final long date = fbDateToJava(message.getInt(offset));
+						final long time = fbTimeToJava(message.getInt(offset + 4));
+						final java.sql.Time baseTime = new Time(0);
 
 						return new java.sql.Timestamp(date + time - baseTime.getTime());
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						if (o == null)
 							return null;
@@ -1105,14 +1113,14 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset, Object o, Object result) throws FbException
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset, final Object o, final Object result) throws FbException
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
 						else
 						{
-							long t = (long) result;
+							final long t = (long) result;
 
 							message.setShort(nullOffset, NOT_NULL_FLAG);
 							message.setInt(offset, javaDateToFb(t));
@@ -1126,15 +1134,15 @@ final class ExternalEngine implements IExternalEngineIntf
 		// boolean, Boolean
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				builder.setType(status, index, ISCConstants.SQL_BOOLEAN);
 
 				return new Conversion() {
 					@Override
-					Object getFromMessagePrivileged(IExternalContext context, Pointer message,
-						int nullOffset, int offset)
+					Object getFromMessagePrivileged(final IExternalContext context, final Pointer message,
+						final int nullOffset, final int offset)
 					{
 						return message.getShort(nullOffset) != NOT_NULL_FLAG ?
 							(javaClass == boolean.class ? (Boolean) false : null) :
@@ -1142,20 +1150,20 @@ final class ExternalEngine implements IExternalEngineIntf
 					}
 
 					@Override
-					Object getFromMessageUnprivileged(IExternalContext context, Object result)
+					Object getFromMessageUnprivileged(final IExternalContext context, final Object result)
 					{
 						return result;
 					}
 
 					@Override
-					Object putInMessageUnprivileged(IExternalContext context, Object o)
+					Object putInMessageUnprivileged(final IExternalContext context, final Object o)
 					{
 						return o;
 					}
 
 					@Override
-					void putInMessagePrivileged(IExternalContext context, Pointer message, int nullOffset, int offset,
-						Object o, Object result)
+					void putInMessagePrivileged(final IExternalContext context, final Pointer message, final int nullOffset, final int offset,
+						final Object o, final Object result)
 					{
 						if (result == null)
 							message.setShort(nullOffset, NULL_FLAG);
@@ -1172,8 +1180,8 @@ final class ExternalEngine implements IExternalEngineIntf
 		// Object
 		addDataType(new DataType() {
 			@Override
-			Conversion setupConversion(IStatus status, Class<?> javaClass, IMessageMetadata metadata,
-				IMetadataBuilder builder, int index) throws FbException
+			Conversion setupConversion(final IStatus status, final Class<?> javaClass, final IMessageMetadata metadata,
+				final IMetadataBuilder builder, final int index) throws FbException
 			{
 				int type = metadata.getType(status, index);
 				DataType defaultType = defaultDataTypes.get(type);
@@ -1215,16 +1223,16 @@ final class ExternalEngine implements IExternalEngineIntf
 		});
 	}
 
-	private static long fbDateToJava(int n)
+	private static long fbDateToJava(final int n)
 	{
-		ISC_DATE iscDate = new ISC_DATE();
+		final ISC_DATE iscDate = new ISC_DATE();
 		iscDate.value = n;
-		int[] year = new int[1];
-		int[] month = new int[1];
-		int[] day = new int[1];
+		final int[] year = new int[1];
+		final int[] month = new int[1];
+		final int[] day = new int[1];
 		Main.util.decodeDate(iscDate, year, month, day);
 
-		Calendar calendar = Calendar.getInstance();
+		final Calendar calendar = Calendar.getInstance();
 		calendar.setTimeInMillis(0);
 		calendar.set(Calendar.YEAR, year[0]);
 		calendar.set(Calendar.MONTH, month[0] - 1);
@@ -1233,12 +1241,12 @@ final class ExternalEngine implements IExternalEngineIntf
 		return calendar.getTimeInMillis();
 	}
 
-	private static int javaDateToFb(long n)
+	private static int javaDateToFb(final long n)
 	{
-		Calendar calendar = Calendar.getInstance();
+		final Calendar calendar = Calendar.getInstance();
 		calendar.setTimeInMillis(n);
 
-		ISC_DATE iscDate = Main.util.encodeDate(
+		final ISC_DATE iscDate = Main.util.encodeDate(
 			calendar.get(Calendar.YEAR),
 			calendar.get(Calendar.MONTH) + 1,
 			calendar.get(Calendar.DAY_OF_MONTH));
@@ -1246,17 +1254,17 @@ final class ExternalEngine implements IExternalEngineIntf
 		return iscDate.value;
 	}
 
-	private static long fbTimeToJava(int n)
+	private static long fbTimeToJava(final int n)
 	{
-		ISC_TIME iscTime = new ISC_TIME();
+		final ISC_TIME iscTime = new ISC_TIME();
 		iscTime.value = n;
-		int[] hours = new int[1];
-		int[] minutes = new int[1];
-		int[] seconds = new int[1];
-		int[] fractions = new int[1];
+		final int[] hours = new int[1];
+		final int[] minutes = new int[1];
+		final int[] seconds = new int[1];
+		final int[] fractions = new int[1];
 		Main.util.decodeTime(iscTime, hours, minutes, seconds, fractions);
 
-		Calendar calendar = Calendar.getInstance();
+		final Calendar calendar = Calendar.getInstance();
 		calendar.setTimeInMillis(0);
 		calendar.set(Calendar.HOUR_OF_DAY, hours[0]);
 		calendar.set(Calendar.MINUTE, minutes[0]);
@@ -1266,12 +1274,12 @@ final class ExternalEngine implements IExternalEngineIntf
 		return calendar.getTimeInMillis();
 	}
 
-	private static int javaTimeToFb(long n)
+	private static int javaTimeToFb(final long n)
 	{
-		Calendar calendar = Calendar.getInstance();
+		final Calendar calendar = Calendar.getInstance();
 		calendar.setTimeInMillis(n);
 
-		ISC_TIME iscTime = Main.util.encodeTime(
+		final ISC_TIME iscTime = Main.util.encodeTime(
 			calendar.get(Calendar.HOUR_OF_DAY),
 			calendar.get(Calendar.MINUTE),
 			calendar.get(Calendar.SECOND),
@@ -1280,9 +1288,9 @@ final class ExternalEngine implements IExternalEngineIntf
 		return iscTime.value;
 	}
 
-	public static IExternalEngine create(String securityDatabase)
+	public static IExternalEngine create(final String securityDatabase)
 	{
-		ExternalEngine wrapped = new ExternalEngine(securityDatabase);
+		final ExternalEngine wrapped = new ExternalEngine(securityDatabase);
 		wrapped.wrapper = JnaUtil.pin(new IExternalEngine(wrapped));
 		return wrapped.wrapper;
 	}
@@ -1326,13 +1334,13 @@ final class ExternalEngine implements IExternalEngineIntf
 				{
 					return new SharedData(key);
 				}
-				catch (Exception e)
+				catch (final Exception e)
 				{
 					throw new RuntimeException(e);
 				}
 			});
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 		}
@@ -1352,7 +1360,7 @@ final class ExternalEngine implements IExternalEngineIntf
 			if (sharedData.closeAttachment(status, context))
 				sharedDataMap.remove(context.getDatabaseName());
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 		}
@@ -1369,7 +1377,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				return ExternalFunction.create(routine);
 			});
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 			return null;
@@ -1383,11 +1391,12 @@ final class ExternalEngine implements IExternalEngineIntf
 		try
 		{
 			return doPrivileged(() -> {
-				Routine routine = getRoutine(status, context, metadata, inBuilder, outBuilder, Routine.Type.PROCEDURE);
+				final Routine routine = getRoutine(status, context, metadata,
+					inBuilder, outBuilder, Routine.Type.PROCEDURE);
 				return ExternalProcedure.create(routine);
 			});
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 			return null;
@@ -1401,11 +1410,12 @@ final class ExternalEngine implements IExternalEngineIntf
 		try
 		{
 			return doPrivileged(() -> {
-				Routine routine = getRoutine(status, context, metadata, fieldsBuilder, null, Routine.Type.TRIGGER);
+				final Routine routine = getRoutine(status, context, metadata, fieldsBuilder,
+					null, Routine.Type.TRIGGER);
 				return ExternalTrigger.create(routine);
 			});
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 			return null;
@@ -1415,40 +1425,41 @@ final class ExternalEngine implements IExternalEngineIntf
 	private Routine getRoutine(IStatus status, IExternalContext context, IRoutineMetadata metadata,
 		IMetadataBuilder inBuilder, IMetadataBuilder outBuilder, Routine.Type type) throws Throwable
 	{
-		String entryPoint = metadata.getEntryPoint(status);
-		String invalidMethodSignatureMsg = String.format("Invalid method signature: '%s'", entryPoint);
-		int paramsStart = entryPoint.indexOf('(');
+		final String entryPoint = metadata.getEntryPoint(status);
+		final String invalidMethodSignatureMsg = String.format("Invalid method signature: '%s'", entryPoint);
+		final int paramsStart = entryPoint.indexOf('(');
 
 		if (paramsStart == -1)
 			throw new FbException(invalidMethodSignatureMsg);
 
-		int methodStart = entryPoint.lastIndexOf('.', paramsStart) + 1;
+		final int methodStart = entryPoint.lastIndexOf('.', paramsStart) + 1;
 
 		if (methodStart == 0)
 			throw new FbException(invalidMethodSignatureMsg);
 
-		String className = entryPoint.substring(0, methodStart - 1).trim();
-		String methodName = entryPoint.substring(methodStart, paramsStart).trim();
+		final String className = entryPoint.substring(0, methodStart - 1).trim();
+		final String methodName = entryPoint.substring(methodStart, paramsStart).trim();
 
-		Class<?> clazz = runInClassLoader(status, context, className, methodName,
+		final Class<?> clazz = runInClassLoader(status, context, className, methodName,
 			() -> Class.forName(className, true, sharedData.classLoader));
 
-		Routine routine = new Routine(status, metadata, this, type);
-		ArrayList<Class<?>> paramTypes = new ArrayList<>();
+		final Routine routine = new Routine(status, metadata, this, type);
+		final ArrayList<Class<?>> paramTypes = new ArrayList<>();
 
-		int[] pos = {paramsStart + 1};
+		final int[] pos = {paramsStart + 1};
 
 		skipBlanks(entryPoint, pos);
 
-		IMessageMetadata inMetadata = type == Routine.Type.TRIGGER ? null : metadata.getInputMetadata(status);
+		final IMessageMetadata inMetadata = type == Routine.Type.TRIGGER ? null : metadata.getInputMetadata(status);
 		try
 		{
-			int inCount = inMetadata == null ? 0 : inMetadata.getCount(status);
+			final int inCount = inMetadata == null ? 0 : inMetadata.getCount(status);
 
-			IMessageMetadata outMetadata = type == Routine.Type.TRIGGER ? null : metadata.getOutputMetadata(status);
+			final IMessageMetadata outMetadata = type == Routine.Type.TRIGGER ?
+				null : metadata.getOutputMetadata(status);
 			try
 			{
-				int outCount = outMetadata == null ? 0 : outMetadata.getCount(status);
+				final int outCount = outMetadata == null ? 0 : outMetadata.getCount(status);
 
 				if (peekChar(entryPoint, pos) == ')')
 					++pos[0];
@@ -1463,11 +1474,11 @@ final class ExternalEngine implements IExternalEngineIntf
 					{
 						++n;
 
-						boolean isOutput = n > inCount && n <= inCount + outCount;
-						Parameter parameter = getDataType(entryPoint, pos, isOutput);
+						final boolean isOutput = n > inCount && n <= inCount + outCount;
+						final Parameter parameter = getDataType(entryPoint, pos, isOutput);
 
-						IMessageMetadata inOutMetadata;
-						int index;
+						final IMessageMetadata inOutMetadata;
+						final int index;
 
 						if (isOutput)
 						{
@@ -1489,7 +1500,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 						skipBlanks(entryPoint, pos);
 
-						char c = getChar(entryPoint, pos);
+						final char c = getChar(entryPoint, pos);
 
 						if (c == ')')
 						{
@@ -1534,7 +1545,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 						routine.method = clazz.getMethod(methodName, paramTypes.toArray(new Class<?> [0]));
 
-						DataType returnType = dataTypesByClass.get(routine.method.getReturnType());
+						final DataType returnType = dataTypesByClass.get(routine.method.getReturnType());
 
 						if (returnType == null)
 						{
@@ -1542,7 +1553,7 @@ final class ExternalEngine implements IExternalEngineIntf
 								routine.method.getReturnType().getName()));
 						}
 
-						Parameter parameter = new Parameter(returnType, routine.method.getReturnType());
+						final Parameter parameter = new Parameter(returnType, routine.method.getReturnType());
 						parameter.type = fbTypeNames.get(outMetadata.getType(status, 0));
 
 						routine.outputParameters.add(parameter);
@@ -1558,7 +1569,7 @@ final class ExternalEngine implements IExternalEngineIntf
 								paramTypes.size(), inCount, outCount));
 						}
 
-						ArrayList<Class<?>> paramTypes2 = new ArrayList<>();
+						final ArrayList<Class<?>> paramTypes2 = new ArrayList<>();
 
 						paramTypes
 							.stream()
@@ -1592,7 +1603,7 @@ final class ExternalEngine implements IExternalEngineIntf
 
 						if (inBuilder != null)
 						{
-							IMessageMetadata triggerMetadata = metadata.getTriggerMetadata(status);
+							final IMessageMetadata triggerMetadata = metadata.getTriggerMetadata(status);
 							try
 							{
 								routine.setupParameters(status, routine.inputParameters, routine.inputMetadata,
@@ -1632,7 +1643,7 @@ final class ExternalEngine implements IExternalEngineIntf
 		return routine;
 	}
 
-	private Parameter getDataType(String s, int[] pos, boolean arrayRef) throws FbException
+	private Parameter getDataType(final String s, final int[] pos, final boolean arrayRef) throws FbException
 	{
 		String name = getName(s, pos);
 
@@ -1666,7 +1677,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				throw new FbException(String.format("Expected an array type but found '%s'", name));
 		}
 
-		Class<?> javaClass = javaClassesByName.get(name);
+		final Class<?> javaClass = javaClassesByName.get(name);
 
 		if (javaClass == null)
 			throw new FbException(String.format("Unrecognized data type: '%s'", name));
@@ -1674,12 +1685,12 @@ final class ExternalEngine implements IExternalEngineIntf
 		return new Parameter(dataTypesByClass.get(javaClass), javaClass);
 	}
 
-	private String getName(String s, int[] pos) throws FbException
+	private String getName(final String s, final int[] pos) throws FbException
 	{
 		if (pos[0] >= s.length())
 			throw new FbException("Expected name but entry point end found.");
 
-		int start = pos[0];
+		final int start = pos[0];
 
 		if (!Character.isJavaIdentifierStart((peekChar(s, pos))))
 			throw new FbException(String.format("Expected name at entry point character position %d.", pos[0]));
@@ -1692,23 +1703,23 @@ final class ExternalEngine implements IExternalEngineIntf
 		return s.substring(start, pos[0]);
 	}
 
-	private void skipBlanks(String s, int[] pos)
+	private void skipBlanks(final String s, final int[] pos)
 	{
-		int len = s.length();
+		final int len = s.length();
 		char c;
 
 		while (pos[0] < len && ((c = s.charAt(pos[0])) == ' ' || c == '\t' || c == '\r' || c == '\n'))
 			++pos[0];
 	}
 
-	private char getChar(String s, int[] pos) throws FbException
+	private char getChar(final String s, final int[] pos) throws FbException
 	{
-		char c = peekChar(s, pos);
+		final char c = peekChar(s, pos);
 		++pos[0];
 		return c;
 	}
 
-	private char peekChar(String s, int[] pos) throws FbException
+	private char peekChar(final String s, final int[] pos) throws FbException
 	{
 		if (pos[0] >= s.length())
 			throw new FbException("Expected a character but entry point end found.");
@@ -1716,34 +1727,34 @@ final class ExternalEngine implements IExternalEngineIntf
 		return s.charAt(pos[0]);
 	}
 
-	<T> T runInClassLoader(IStatus status, IExternalContext context, String className, String methodName,
-		CallableThrowable<T> callable) throws Throwable
+	<T> T runInClassLoader(final IStatus status, final IExternalContext context, final String className,
+		final String methodName, final CallableThrowable<T> callable) throws Throwable
 	{
 		return doPrivileged(() -> runInClassLoader0(status, context, className, methodName, callable));
 	}
 
-	private <T> T runInClassLoader0(IStatus status, IExternalContext context, String className, String methodName,
-		CallableThrowable<T> callable) throws Throwable
+	private <T> T runInClassLoader0(final IStatus status, final IExternalContext context,
+		final String className, final String methodName, final CallableThrowable<T> callable) throws Throwable
 	{
-		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
+		final ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
 		try
 		{
 			Thread.currentThread().setContextClassLoader(sharedData.classLoader);
 
-			Subject subj = DbPolicy.getUserSubject(status, context, sharedData.classLoader);
+			final Subject subj = DbPolicy.getUserSubject(status, context, sharedData.classLoader);
 
-			ProtectionDomain[] protectionDomains = {new ProtectionDomain(sharedData.classLoader.codeSource,
+			final ProtectionDomain[] protectionDomains = {new ProtectionDomain(sharedData.classLoader.codeSource,
 				sharedData.classLoader.codeSourcePermission, sharedData.classLoader,
 				subj.getPrincipals().toArray(new Principal[1]))};
 
-			AccessControlContext acc = new AccessControlContext(protectionDomains);
+			final AccessControlContext acc = new AccessControlContext(protectionDomains);
 
 			return doAsPrivileged(subj, acc, () -> {
 				try
 				{
 					return callable.call();
 				}
-				catch (Throwable userException)
+				catch (final Throwable userException)
 				{
 					// Lets filter the stack trace to remove garbage from user POV. We remove up to the user class
 					// and method name. From all frames.
@@ -1752,7 +1763,7 @@ final class ExternalEngine implements IExternalEngineIntf
 						 currentException != null;
 						 currentException = currentException.getCause())
 					{
-						StackTraceElement[] currentTrace = currentException.getStackTrace();
+						final StackTraceElement[] currentTrace = currentException.getStackTrace();
 
 						for (int i = currentTrace.length - 1; i >= 0; --i)
 						{
@@ -1780,7 +1791,7 @@ final class ExternalEngine implements IExternalEngineIntf
 		T run() throws Throwable;
 	}
 
-	static <T> T doPrivileged(PrivilegedThrowableAction<T> action) throws Throwable
+	static <T> T doPrivileged(final PrivilegedThrowableAction<T> action) throws Throwable
 	{
 		try
 		{
@@ -1792,7 +1803,7 @@ final class ExternalEngine implements IExternalEngineIntf
 					{
 						return action.run();
 					}
-					catch (Throwable t)
+					catch (final Throwable t)
 					{
 						// We cannot pass a Throwable with PrivilegedExceptionAction, so we enclose it with an
 						// Exception. This is the reason we call getClause() two times below.
@@ -1801,14 +1812,14 @@ final class ExternalEngine implements IExternalEngineIntf
 				}
 			});
 		}
-		catch (PrivilegedActionException privilegedException)
+		catch (final PrivilegedActionException privilegedException)
 		{
 			throw privilegedException.getCause().getCause();	// user exception
 		}
 	}
 
-	static <T> T doAsPrivileged(Subject subject, AccessControlContext acc, PrivilegedThrowableAction<T> action)
-		throws Throwable
+	static <T> T doAsPrivileged(final Subject subject, final AccessControlContext acc,
+		final PrivilegedThrowableAction<T> action) throws Throwable
 	{
 		try
 		{
@@ -1820,7 +1831,7 @@ final class ExternalEngine implements IExternalEngineIntf
 					{
 						return action.run();
 					}
-					catch (Throwable t)
+					catch (final Throwable t)
 					{
 						// We cannot pass a Throwable with PrivilegedExceptionAction, so we enclose it with an
 						// Exception. This is the reason we call getClause() two times below.
@@ -1829,7 +1840,7 @@ final class ExternalEngine implements IExternalEngineIntf
 				}
 			}, acc);
 		}
-		catch (PrivilegedActionException privilegedException)
+		catch (final PrivilegedActionException privilegedException)
 		{
 			throw privilegedException.getCause().getCause();	// user exception
 		}

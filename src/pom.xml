@@ -6,25 +6,109 @@
 
 	<groupId>org.firebirdsql.fbjava</groupId>
 	<artifactId>fbjava-parent</artifactId>
-	<name>fbjava-parent</name>
-	<version>1.0.0-alpha-1</version>
+	<version>1.0.0-beta-1</version>
 	<packaging>pom</packaging>
+
+	<name>${project.groupId}:${project.artifactId}</name>
+	<description>Java plugin for Firebird Database</description>
+	<url>https://github.com/FirebirdSQL/fbjava</url>
+
+	<licenses>
+		<license>
+			<name>LGPL</name>
+			<url>http://www.gnu.org/copyleft/lgpl.html</url>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Adriano dos Santos Fernandes</name>
+			<email>adrianosf@gmail.com</email>
+			<organization>FirebirdSQL</organization>
+			<organizationUrl>https://github.com/FirebirdSQL</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/FirebirdSQL/fbjava.git</connection>
+		<developerConnection>scm:git:ssh://github.com:FirebirdSQL/fbjava.git</developerConnection>
+		<url>http://github.com/FirebirdSQL/fbjava/tree/master</url>
+	</scm>
+
+	<profiles>
+		<profile>
+			<id>build-dir</id>
+			<activation>
+				<property>
+					<name>build.dir</name>
+				</property>
+			</activation>
+			<build>
+				<directory>${build.dir}/${project.artifactId}</directory>
+			</build>
+		</profile>
+
+		<profile>
+			<id>all-modules</id>
+			<activation>
+				<property>
+					<name>!deploy</name>
+				</property>
+			</activation>
+			<modules>
+				<module>fbjava-impl</module>
+				<module>fbjava-tests</module>
+			</modules>
+		</profile>
+
+		<profile>
+			<!-- Use "mvn deploy -Ddeploy" to deploy. -->
+			<id>deploy</id>
+			<activation>
+				<property>
+					<name>deploy</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+					</plugin>
+
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
 
-		<maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
-		<maven-source-plugin.version>3.0.0</maven-source-plugin.version>
-		<maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
-		<maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
+		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+		<maven-source-plugin.version>3.2.0</maven-source-plugin.version>
+		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
+		<maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
+		<maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
+		<maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>
+		<nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
 
-		<jaybird.version>3.0.0-SNAPSHOT</jaybird.version>
-		<jna.version>4.2.2</jna.version>
+		<jaybird.version>4.0.0.java8</jaybird.version>
+		<jna.version>5.5.0</jna.version>
 	</properties>
 
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>org.firebirdsql.jdbc</groupId>
+				<artifactId>jaybird</artifactId>
+				<version>${jaybird.version}</version>
+			</dependency>
+
 			<dependency>
 				<groupId>net.java.dev.jna</groupId>
 				<artifactId>jna</artifactId>
@@ -35,8 +119,6 @@
 
 	<modules>
 		<module>fbjava</module>
-		<module>fbjava-impl</module>
-		<module>fbjava-tests</module>
 	</modules>
 
 	<build>
@@ -60,7 +142,6 @@
 					<executions>
 						<execution>
 							<id>attach-sources</id>
-							<phase>deploy</phase>
 							<goals>
 								<goal>jar-no-fork</goal>
 							</goals>
@@ -77,7 +158,6 @@
 					<executions>
 						<execution>
 							<id>attach-javadocs</id>
-							<phase>deploy</phase>
 							<goals>
 								<goal>jar</goal>
 							</goals>
@@ -100,17 +180,56 @@
 						</execution>
 					</executions>
 				</plugin>
+
+				<plugin>
+					<artifactId>maven-install-plugin</artifactId>
+					<version>${maven-install-plugin.version}</version>
+					<configuration>
+					</configuration>
+					<executions>
+						<execution>
+							<id>install</id>
+							<phase>install</phase>
+							<goals>
+								<goal>install</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-gpg-plugin</artifactId>
+					<version>${maven-gpg-plugin.version}</version>
+					<executions>
+						<execution>
+							<id>sign-artifacts</id>
+							<phase>verify</phase>
+							<goals>
+								<goal>sign</goal>
+							</goals>
+							<configuration>
+								<gpgArguments>
+									<arg>--pinentry-mode</arg>
+									<arg>loopback</arg>
+								</gpgArguments>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
+
+				<plugin>
+					<groupId>org.sonatype.plugins</groupId>
+					<artifactId>nexus-staging-maven-plugin</artifactId>
+					<version>${nexus-staging-maven-plugin.version}</version>
+					<extensions>true</extensions>
+					<configuration>
+						<serverId>ossrh</serverId>
+						<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+						<autoReleaseAfterClose>true</autoReleaseAfterClose>
+					</configuration>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>
-
-	<!--
-	<repositories>
-		<repository>
-			<id>sonatype-snapshot</id>
-			<name>sonatype-snapshot</name>
-			<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-		</repository>
-	</repositories>
-	-->
 </project>

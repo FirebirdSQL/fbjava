@@ -31,25 +31,25 @@ abstract class CallableRoutineContextImpl extends ContextImpl implements Callabl
 	}
 
 	@Override
-	public String getPackageName()
+	public final String getPackageName()
 	{
 		return internalContext.getRoutine().packageName;
 	}
 
 	@Override
-	public ValuesMetadata getInputMetadata()
+	public final ValuesMetadata getInputMetadata()
 	{
 		return internalContext.getRoutine().inputMetadata;
 	}
 
 	@Override
-	public ValuesMetadata getOutputMetadata()
+	public final ValuesMetadata getOutputMetadata()
 	{
 		return internalContext.getRoutine().outputMetadata;
 	}
 
 	@Override
-	public Values getInputValues()
+	public final Values getInputValues()
 	{
 		return internalContext.getInValues();
 	}

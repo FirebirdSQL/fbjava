@@ -28,11 +28,11 @@ import java.security.Principal;
  */
 final class DbPrincipal implements Principal
 {
-	private String databaseName;
-	private String roleName;
-	private String userName;
+	private final String databaseName;
+	private final String roleName;
+	private final String userName;
 
-	public DbPrincipal(String databaseName, String roleName, String userName)
+	public DbPrincipal(final String databaseName, final String roleName, final String userName)
 	{
 		this.databaseName = databaseName;
 		this.roleName = roleName;
@@ -46,7 +46,7 @@ final class DbPrincipal implements Principal
 	}
 
 	@Override
-	public boolean equals(Object another)
+	public boolean equals(final Object another)
 	{
 		return (another instanceof DbPrincipal) &&
 			databaseName.equals(((DbPrincipal) another).databaseName) &&

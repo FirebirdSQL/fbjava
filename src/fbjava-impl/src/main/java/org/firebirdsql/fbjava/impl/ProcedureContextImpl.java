@@ -30,7 +30,7 @@ class ProcedureContextImpl extends CallableRoutineContextImpl implements Procedu
 	}
 
 	@Override
-	public Values getOutputValues()
+	public final Values getOutputValues()
 	{
 		return internalContext.getOutValues();
 	}

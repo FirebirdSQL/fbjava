@@ -1,2 +1,7 @@
-build
-output
+build/
+output/
+target/
+.settings/
+.classpath
+.project
+*.log

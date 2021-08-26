@@ -93,7 +93,7 @@ final class Routine
 	void setupParameters(IStatus status, List<Parameter> parameters, ValuesMetadataImpl valuesMetadata,
 		IMessageMetadata metadata, IMetadataBuilder builder) throws FbException
 	{
-		int count = metadata.getCount(status);
+		final int count = metadata.getCount(status);
 
 		if (parameters.size() == 0 && count != 0)
 		{
@@ -112,17 +112,17 @@ final class Routine
 
 		for (int i = 0; i < parameters.size(); ++i)
 		{
-			Parameter parameter = parameters.get(i);
+			final Parameter parameter = parameters.get(i);
 			parameter.conversion = parameter.dataType.setupConversion(status,
 				parameter.javaClass, metadata, builder, i);
 		}
 
-		IMessageMetadata builtMetadata = builder.getMetadata(status);
+		final IMessageMetadata builtMetadata = builder.getMetadata(status);
 		try
 		{
 			for (int i = 0; i < parameters.size(); ++i)
 			{
-				Parameter parameter = parameters.get(i);
+				final Parameter parameter = parameters.get(i);
 				parameter.nullOffset = builtMetadata.getNullOffset(status, i);
 				parameter.offset = builtMetadata.getOffset(status, i);
 				parameter.length = builtMetadata.getLength(status, i);
@@ -145,10 +145,10 @@ final class Routine
 
 		try
 		{
-			engine.doPrivileged(() -> {
+			ExternalEngine.doPrivileged(() -> {
 				int i = 0;
 
-				for (Parameter parameter : parameters)
+				for (final Parameter parameter : parameters)
 				{
 					values[i] = parameter.conversion.getFromMessagePrivileged(context, message,
 						parameter.nullOffset, parameter.offset);
@@ -158,14 +158,14 @@ final class Routine
 				return null;
 			});
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 		}
 
 		int i = 0;
 
-		for (Parameter parameter : parameters)
+		for (final Parameter parameter : parameters)
 		{
 			if (values[i] != null)
 				values[i] = parameter.conversion.getFromMessageUnprivileged(context, values[i]);
@@ -180,7 +180,7 @@ final class Routine
 
 		int i = valuesStart;
 
-		Object[] temp = new Object[values.length - valuesStart];
+		final Object[] temp = new Object[values.length - valuesStart];
 
 		for (Parameter parameter : parameters)
 		{
@@ -191,10 +191,10 @@ final class Routine
 
 		try
 		{
-			engine.doPrivileged(() -> {
+			ExternalEngine.doPrivileged(() -> {
 				int j = valuesStart;
 
-				for (Parameter parameter : parameters)
+				for (final Parameter parameter : parameters)
 				{
 					parameter.conversion.putInMessagePrivileged(context, message, parameter.nullOffset, parameter.offset,
 						values[j], temp[j - valuesStart]);
@@ -204,7 +204,7 @@ final class Routine
 				return null;
 			});
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 		}
@@ -217,15 +217,15 @@ final class Routine
 			() -> {
 				preExecute.run();
 
-				Object ret;
+				final Object ret;
 
 				try
 				{
 					ret = method.invoke(null, (generic ? null : args));
 				}
-				catch (Exception | ExceptionInInitializerError t)
+				catch (final Exception | ExceptionInInitializerError t)
 				{
-					Throwable cause = t.getCause();
+					final Throwable cause = t.getCause();
 					throw cause == null ? t : cause;
 				}
 

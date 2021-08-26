@@ -5,7 +5,7 @@
 Prerequisites
 =============
 
-Java SE Development Kit 8 (http://java.sun.com/javase/downloads/index.jsp) [may work with JRE]
+Java SE Development Kit 8
 Apache Maven (http://maven.apache.org)
 
 
@@ -22,7 +22,6 @@ Set FBJAVA_ROOT environment variable.
 Go to this example's root directory.
 
 Run mvn package
-(If you're new to Maven, it's normal that it will start downloading a lot of files on the first run)
 
 Run util/createdb.{sh,bat} script.
 

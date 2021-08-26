@@ -32,17 +32,17 @@ import com.sun.jna.ptr.IntByReference;
 
 public final class InternalFBConnection extends FBConnection	// must be public
 {
-	public InternalFBConnection(FBManagedConnection mc) throws SQLException
+	public InternalFBConnection(final FBManagedConnection mc) throws SQLException
 	{
 		super(mc);
 
-		InternalContext internalContext = InternalContext.get();
-		IntByReference transactionHandle = new IntByReference();
-		ISC_STATUS[] statusVector = new ISC_STATUS[20];
+		final InternalContext internalContext = InternalContext.get();
+		final IntByReference transactionHandle = new IntByReference();
+		final ISC_STATUS[] statusVector = new ISC_STATUS[20];
 
 		Main.library.fb_get_transaction_handle(statusVector, transactionHandle, internalContext.getTransaction());
 
-		JnaTransaction jnaTransaction = new JnaTransaction((JnaDatabase) getFbDatabase(), transactionHandle,
+		final JnaTransaction jnaTransaction = new JnaTransaction((JnaDatabase) getFbDatabase(), transactionHandle,
 			TransactionState.ACTIVE)
 		{
 			@Override
@@ -55,7 +55,7 @@ public final class InternalFBConnection extends FBConnection	// must be public
 	}
 
 	@Override
-	public void setManagedEnvironment(boolean managedConnection) throws SQLException
+	public void setManagedEnvironment(final boolean managedConnection) throws SQLException
 	{
 		// for autocommit off
 		checkValidity();

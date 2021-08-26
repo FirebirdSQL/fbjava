@@ -34,25 +34,25 @@ abstract class ContextImpl implements Context
 	}
 
 	@Override
-	public Connection getConnection() throws SQLException
+	public final Connection getConnection() throws SQLException
 	{
 		return internalContext.getConnection();
 	}
 
 	@Override
-	public String getObjectName()
+	public final String getObjectName()
 	{
 		return internalContext.getRoutine().objectName;
 	}
 
 	@Override
-	public String getNameInfo()
+	public final String getNameInfo()
 	{
 		return internalContext.getRoutine().nameInfo;
 	}
 
 	@Override
-	public String getBody()
+	public final String getBody()
 	{
 		return internalContext.getRoutine().body;
 	}

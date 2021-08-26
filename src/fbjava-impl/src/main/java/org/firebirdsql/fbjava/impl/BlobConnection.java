@@ -62,19 +62,19 @@ final class BlobConnection extends URLConnection
 			final DbClassLoader classLoader = (DbClassLoader) Thread.currentThread().getContextClassLoader();
 			final Connection conn = classLoader.getConnection();
 
-			try (PreparedStatement stmt = conn.prepareStatement("select content from sqlj.read_jar(?)"))
+			try (final PreparedStatement stmt = conn.prepareStatement("select content from sqlj.read_jar(?)"))
 			{
-				String urlStr = url.toString().substring(8);	// "fbjava:/"
+				final String urlStr = url.toString().substring(8);	// "fbjava:/"
 				stmt.setString(1, urlStr);
 
-				try (ResultSet rs = stmt.executeQuery())
+				try (final ResultSet rs = stmt.executeQuery())
 				{
 					if (rs.next())
 					{
-						InputStream in = rs.getBinaryStream(1);
+						final InputStream in = rs.getBinaryStream(1);
 						bout = new ByteArrayOutputStream();
 
-						byte[] buffer = new byte[8192];
+						final byte[] buffer = new byte[8192];
 						int count;
 
 						while ((count = in.read(buffer)) != -1)
@@ -82,16 +82,16 @@ final class BlobConnection extends URLConnection
 					}
 					else
 					{
-						try (PreparedStatement stmt2 = conn.prepareStatement("select child from sqlj.list_dir(?)"))
+						try (final PreparedStatement stmt2 = conn.prepareStatement("select child from sqlj.list_dir(?)"))
 						{
 							stmt2.setString(1, urlStr);
 
-							try (ResultSet rs2 = stmt2.executeQuery())
+							try (final ResultSet rs2 = stmt2.executeQuery())
 							{
 								if (rs2.next())
 								{
 									bout = new ByteArrayOutputStream();
-									PrintWriter writer = new PrintWriter(bout);
+									final PrintWriter writer = new PrintWriter(bout);
 
 									do
 									{
@@ -109,7 +109,7 @@ final class BlobConnection extends URLConnection
 				}
 			}
 		}
-		catch (SQLException e)
+		catch (final SQLException e)
 		{
 			log.error("Error retrieving resource or class from the database", e);
 			throw new IOException(e);

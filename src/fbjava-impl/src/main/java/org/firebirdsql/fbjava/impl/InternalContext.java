@@ -32,7 +32,7 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.ITransaction;
 // This (non-public) class is accessed by org.firebirdsql.fbjava.Context by reflection.
 final class InternalContext implements AutoCloseable
 {
-	private static ThreadLocal<InternalContext> tls = new ThreadLocal<InternalContext>();
+	private static final ThreadLocal<InternalContext> tls = new ThreadLocal<InternalContext>();
 	private IAttachment attachment;
 	private ITransaction transaction;
 	private Routine routine;
@@ -46,36 +46,38 @@ final class InternalContext implements AutoCloseable
 		return tls.get();
 	}
 
-	public static InternalContext set(InternalContext newValue)
+	public static InternalContext set(final InternalContext newValue)
 	{
-		InternalContext oldValue = tls.get();
+		final InternalContext oldValue = tls.get();
 		tls.set(newValue);
 		return oldValue;
 	}
 
 	public static ContextImpl getContextImpl()
 	{
-		return get().contextImpl;
+		final InternalContext context = get();
+		return context.contextImpl;
 	}
 
-	public static InternalContext create(IStatus status, IExternalContext context, Routine routine,
-		ValuesImpl inValues, ValuesImpl outValues) throws FbException
+	public static InternalContext create(final IStatus status, final IExternalContext context, final Routine routine,
+		final ValuesImpl inValues, final ValuesImpl outValues) throws FbException
 	{
-		InternalContext internalContext = new InternalContext();
+		final InternalContext internalContext = new InternalContext();
 		internalContext.setup(status, context, routine, 0, inValues, outValues);
 		return internalContext;
 	}
 
-	public static InternalContext createTrigger(IStatus status, IExternalContext context, Routine routine,
-		int action, ValuesImpl oldValues, ValuesImpl newValues) throws FbException
+	public static InternalContext createTrigger(final IStatus status, final IExternalContext context,
+		final Routine routine, final int action, final ValuesImpl oldValues, final ValuesImpl newValues)
+			throws FbException
 	{
-		InternalContext internalContext = new InternalContext();
+		final InternalContext internalContext = new InternalContext();
 		internalContext.setup(status, context, routine, action, oldValues, newValues);
 		return internalContext;
 	}
 
-	private void setup(IStatus status, IExternalContext context, Routine routine, int triggerAction,
-		ValuesImpl inValues, ValuesImpl outValues) throws FbException
+	private void setup(final IStatus status, final IExternalContext context, final Routine routine,
+		final int triggerAction, final ValuesImpl inValues, final ValuesImpl outValues) throws FbException
 	{
 		attachment = context.getAttachment(status);
 		transaction = context.getTransaction(status);
@@ -134,7 +136,7 @@ final class InternalContext implements AutoCloseable
 	{
 		if (connection == null)
 		{
-			Properties properties = new Properties();
+			final Properties properties = new Properties();
 			properties.setProperty("encoding", "utf8");
 
 			connection = DriverManager.getConnection("jdbc:default:connection", properties);

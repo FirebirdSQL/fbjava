@@ -23,9 +23,9 @@ import org.firebirdsql.fbjava.Values;
 
 final class ValuesImpl implements Values
 {
-	private Object[] array;
-	private int inCount;
-	private int outCount;
+	private final Object[] array;
+	private final int inCount;
+	private final int outCount;
 
 	ValuesImpl(Object[] array, int inCount, int outCount)
 	{
@@ -59,7 +59,7 @@ final class ValuesImpl implements Values
 	@Override
 	public Object setObject(int index, Object value)
 	{
-		Object oldValue = getObject(index);
+		final Object oldValue = getObject(index);
 
 		if (outCount == -1)
 		{

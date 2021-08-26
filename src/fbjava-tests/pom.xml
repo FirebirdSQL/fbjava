@@ -7,13 +7,16 @@
 	<parent>
 		<groupId>org.firebirdsql.fbjava</groupId>
 		<artifactId>fbjava-parent</artifactId>
-		<version>1.0.0-alpha-1</version>
+		<version>1.0.0-beta-1</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>fbjava-tests</artifactId>
-	<name>fbjava-tests</name>
 	<packaging>jar</packaging>
+
+	<name>${project.groupId}:${project.artifactId}</name>
+	<description>Java plugin for Firebird Database</description>
+	<url>https://github.com/FirebirdSQL/fbjava</url>
 
 	<dependencies>
 		<dependency>
@@ -28,6 +31,13 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-install-plugin</artifactId>
 				<configuration>
 					<skip>true</skip>
 				</configuration>

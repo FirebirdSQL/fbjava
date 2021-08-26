@@ -32,17 +32,17 @@ import com.sun.jna.Pointer;
 final class ExternalResultSetWrapper implements IExternalResultSetIntf
 {
 	private IExternalResultSet wrapper;
-	private Routine routine;
-	private IExternalContext context;
-	private InternalContext internalContext;
-	private Pointer outMsg;
-	private ExternalResultSet extRs;
-	private int inCount;
-	private Object[] inOut;
-	private Object[] inOut2;
+	private final Routine routine;
+	private final IExternalContext context;
+	private final InternalContext internalContext;
+	private final Pointer outMsg;
+	private final ExternalResultSet extRs;
+	private final int inCount;
+	private final Object[] inOut;
+	private final Object[] inOut2;
 
-	private ExternalResultSetWrapper(Routine routine, IExternalContext context, InternalContext internalContext, Pointer outMsg,
-		ExternalResultSet extRs, int inCount, Object[] inOut, Object[] inOut2)
+	private ExternalResultSetWrapper(Routine routine, IExternalContext context, InternalContext internalContext,
+		Pointer outMsg, ExternalResultSet extRs, int inCount, Object[] inOut, Object[] inOut2)
 	{
 		this.routine = routine;
 		this.context = context;
@@ -57,8 +57,8 @@ final class ExternalResultSetWrapper implements IExternalResultSetIntf
 	public static IExternalResultSet create(Routine routine, IExternalContext context, InternalContext internalContext, Pointer outMsg,
 		ExternalResultSet extRs, int inCount, Object[] inOut, Object[] inOut2)
 	{
-		ExternalResultSetWrapper wrapped = new ExternalResultSetWrapper(routine, context, internalContext, outMsg, extRs,
-			inCount, inOut, inOut2);
+		final ExternalResultSetWrapper wrapped = new ExternalResultSetWrapper(routine, context, internalContext,
+			outMsg, extRs, inCount, inOut, inOut2);
 		wrapped.wrapper = JnaUtil.pin(new IExternalResultSet(wrapped));
 		return wrapped.wrapper;
 	}
@@ -68,10 +68,10 @@ final class ExternalResultSetWrapper implements IExternalResultSetIntf
 	{
 		try
 		{
-			IStatus status = Main.master.getStatus();
+			final IStatus status = Main.master.getStatus();
 			try
 			{
-				InternalContext oldContext = InternalContext.set(internalContext);
+				final InternalContext oldContext = InternalContext.set(internalContext);
 				try
 				{
 					try
@@ -98,7 +98,7 @@ final class ExternalResultSetWrapper implements IExternalResultSetIntf
 				status.dispose();
 			}
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			//// TODO: ???
 		}
@@ -113,7 +113,7 @@ final class ExternalResultSetWrapper implements IExternalResultSetIntf
 
 		try
 		{
-			InternalContext oldContext = InternalContext.set(internalContext);
+			final InternalContext oldContext = InternalContext.set(internalContext);
 			try
 			{
 				return routine.engine.runInClassLoader(status, context,
@@ -138,7 +138,7 @@ final class ExternalResultSetWrapper implements IExternalResultSetIntf
 				InternalContext.set(oldContext);
 			}
 		}
-		catch (Throwable t)
+		catch (final Throwable t)
 		{
 			FbException.rethrow(t);
 			return false;

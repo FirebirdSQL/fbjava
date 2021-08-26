@@ -43,12 +43,12 @@ import org.firebirdsql.jdbc.FBConnection;
 final class DbClassLoader extends URLClassLoader
 {
 	private final URL contextUrl;
-	String databaseName;
-	private FBConnection connection;
-	CodeSource codeSource;
-	PermissionCollection codeSourcePermission = new Permissions();
+	final String databaseName;
+	private final FBConnection connection;
+	final CodeSource codeSource;
+	final PermissionCollection codeSourcePermission = new Permissions();
 
-	DbClassLoader(String databaseName, URL contextUrl, ClassLoader parent)
+	DbClassLoader(final String databaseName, final URL contextUrl, final ClassLoader parent)
 		throws SQLException
 	{
 		super(new URL[] {contextUrl}, parent);
@@ -58,8 +58,8 @@ final class DbClassLoader extends URLClassLoader
 
 		codeSource = new CodeSource(contextUrl, (Certificate[]) null);
 
-		Properties properties = new Properties();
-		properties.setProperty("user", "SYSDBA");
+		final Properties properties = new Properties();
+		properties.setProperty("user", "SYSDBA");	//// FIXME:
 		properties.setProperty("isc_dpb_no_db_triggers", "1");
 
 		connection = (FBConnection) DriverManager.getConnection(
@@ -67,7 +67,7 @@ final class DbClassLoader extends URLClassLoader
 		connection.setAutoCommit(false);
 		connection.setReadOnly(true);
 
-		TransactionParameterBuffer tpb = connection.createTransactionParameterBuffer();
+		final TransactionParameterBuffer tpb = connection.createTransactionParameterBuffer();
 		tpb.addArgument(ISCConstants.isc_tpb_read_committed);
 		tpb.addArgument(ISCConstants.isc_tpb_rec_version);
 		tpb.addArgument(ISCConstants.isc_tpb_read);
@@ -84,14 +84,14 @@ final class DbClassLoader extends URLClassLoader
 			DbPolicy.databaseClosed();
 			connection.close();
 		}
-		catch (SQLException e)
+		catch (final SQLException e)
 		{
 			throw new IOException(e);
 		}
 	}
 
 	@Override
-	protected PermissionCollection getPermissions(CodeSource codesource)
+	protected PermissionCollection getPermissions(final CodeSource codesource)
 	{
 		return codeSourcePermission;
 	}
@@ -102,7 +102,7 @@ final class DbClassLoader extends URLClassLoader
 	}
 
 	@Override
-	public URL getResource(String name)
+	public URL getResource(final String name)
 	{
 		URL url = super.getResource(name);
 
@@ -113,7 +113,7 @@ final class DbClassLoader extends URLClassLoader
 				url = new URL(contextUrl, name);
 				url.openConnection();
 			}
-			catch (Exception e)
+			catch (final Exception e)
 			{
 				url = null;
 			}

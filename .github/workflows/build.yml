@@ -1,0 +1,101 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2019, ubuntu-20.04]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 0
+
+    - name: Firebird install (Linux)
+      if: matrix.os == 'ubuntu-20.04'
+      run: |
+        sudo apt-get install libtommath1
+        sudo ln -s /usr/lib/x86_64-linux-gnu/libtommath.so.1 /usr/lib/x86_64-linux-gnu/libtommath.so.0
+        wget -nv -O Firebird-3.0.6.33328-0.amd64.tar.gz "https://github.com/FirebirdSQL/firebird/releases/download/R3_0_6/Firebird-3.0.6.33328-0.amd64.tar.gz"
+        tar xzf Firebird-3.0.6.33328-0.amd64.tar.gz
+        (cd Firebird-3.0.6.33328-0.amd64; sudo ./install.sh -silent)
+
+    - name: Firebird install (Windows)
+      if: matrix.os == 'windows-2019'
+      shell: cmd
+      run: |
+        set FB_ZIP=Firebird-3.0.6.33328-0_x64.zip
+        powershell Invoke-WebRequest "https://github.com/FirebirdSQL/firebird/releases/download/R3_0_6/$env:FB_ZIP" -OutFile "$env:FB_ZIP"
+        7z x -oC:\Firebird %FB_ZIP%
+
+    - name: Setup Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: '8'
+        java-package: jdk
+
+    - name: Build (Linux)
+      if: matrix.os == 'ubuntu-20.04'
+      run: |
+        export FIREBIRD=/opt/firebird
+        export PATH=$FIREBIRD/bin:$PATH
+        export FIREBIRD_LOCK=/tmp/firebird-embedded
+        FBJAVA_CONFIG=Release ./bootstrap.sh install
+        ./create-linux-tarball.sh install fbjava-linux-x64.tar.gz
+        tar xzf fbjava-linux-x64.tar.gz
+        export FBJAVA_ROOT=/opt/fbjava
+        sudo fbjava-linux-x64/install.sh $FBJAVA_ROOT
+        ./run-maven.sh --batch-mode install -Dgpg.skip=true
+        echo "include $FBJAVA_ROOT/conf/fbjava.conf" | sudo tee -a $FIREBIRD/plugins.conf > /dev/null
+        sudo chown -R $USER $FBJAVA_ROOT
+        cd $FBJAVA_ROOT/examples/fbjava-example
+        mvn --batch-mode package
+        ./util/createdb.sh
+        echo "select get_system_property('os.name') from rdb\$database;" | isql -q db.fdb
+        echo "select regex_replace('foo', '123 foo 456', 'bar') from rdb\$database;" | isql -q db.fdb
+        echo "insert into employee values (1, 'Juliet Burke'); insert into employee values (2, 'Kate Austen'); select * from employee_local;" | isql -q db.fdb
+
+    - name: Add msbuild to PATH (Windows)
+      if: matrix.os == 'windows-2019'
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Build (Windows)
+      if: matrix.os == 'windows-2019'
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64
+        set FIREBIRD=C:\Firebird
+        set PATH=%FIREBIRD%;%PATH%
+        set FBJAVA_CONFIG=Release
+        call bootstrap.bat install
+        set FBJAVA_ROOT=%CD%\install
+        mkdir artifacts
+        xcopy /e install artifacts\fbjava-windows-x64\
+        call run-maven.bat --batch-mode install -Dgpg.skip=true
+        echo include %FBJAVA_ROOT%\conf\fbjava.conf >> %FIREBIRD%\plugins.conf
+        cd %FBJAVA_ROOT%\examples\fbjava-example
+        call mvn --batch-mode package
+        call .\util\createdb.bat
+        echo select get_system_property('os.name') from rdb$database; | isql -q db.fdb
+        echo select regex_replace('foo', '123 foo 456', 'bar') from rdb$database; | isql -q db.fdb
+        echo insert into employee values (1, 'Juliet Burke'); insert into employee values (2, 'Kate Austen'); select * from employee_local; | isql -q db.fdb
+
+    - name: Upload (Linux)
+      if: matrix.os == 'ubuntu-20.04'
+      uses: actions/upload-artifact@main
+      with:
+        name: fbjava-linux-x64
+        path: fbjava-linux-x64.tar.gz
+
+    - name: Upload (Windows)
+      if: matrix.os == 'windows-2019'
+      uses: actions/upload-artifact@main
+      with:
+        name: fbjava-windows-x64
+        path: artifacts

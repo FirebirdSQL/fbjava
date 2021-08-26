@@ -13,15 +13,17 @@ if [ "$#" != 1 ]; then
 	exit 1
 fi
 
-TARGET_DIR=$1
+TARGET_DIR=`readlink -f "$1"`
 
 if [ -e $TARGET_DIR ]; then
 	echo "Install directory should not exist" 1>&2
 	exit 1
 fi
 
+set -e
+
 mkdir $TARGET_DIR
-tar xzvf $THIS_DIR/buildroot.tar.gz --directory $TARGET_DIR > /dev/null
+tar xzf $THIS_DIR/buildroot.tar.gz --directory $TARGET_DIR > /dev/null
 
 # Set file owners
 chown -R root:root $TARGET_DIR

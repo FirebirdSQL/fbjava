@@ -45,15 +45,15 @@ final class InternalDatabaseFactory extends FbEmbeddedDatabaseFactory
 	@Override
 	public JnaDatabase connect(IConnectionProperties connectionProperties) throws SQLException
 	{
-		InternalContext internalContext = InternalContext.get();
-		IntByReference attachmentHandle = new IntByReference();
-		ISC_STATUS[] statusVector = new ISC_STATUS[20];
+		final InternalContext internalContext = InternalContext.get();
+		final IntByReference attachmentHandle = new IntByReference();
+		final ISC_STATUS[] statusVector = new ISC_STATUS[20];
 
 		Main.library.fb_get_database_handle(statusVector, attachmentHandle, internalContext.getAttachment());
 
 		try
 		{
-			JnaDatabaseConnection jnaDatabaseConnection =
+			final JnaDatabaseConnection jnaDatabaseConnection =
 				AccessController.doPrivileged(new PrivilegedExceptionAction<JnaDatabaseConnection>()
 			{
 				@Override
@@ -85,7 +85,7 @@ final class InternalDatabaseFactory extends FbEmbeddedDatabaseFactory
 
 			return jnaDatabaseConnection.identify();
 		}
-		catch (PrivilegedActionException e)
+		catch (final PrivilegedActionException e)
 		{
 			throw new SQLException(e.getCause());
 		}

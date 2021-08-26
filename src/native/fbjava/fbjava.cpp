@@ -21,35 +21,44 @@
  */
 
 #include "firebird/Interface.h"
+#include <algorithm>
+#include <array>
+#include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iostream>
-#include <list>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <string.h>
+#include <cstring>
 #include <stdlib.h>
-#include <stdio.h>
 #include <sys/stat.h>
-#include <dirent.h>
 
 #ifdef WIN32
 #include <windows.h>
+#define FB_EXPORTED __declspec(dllexport)
 #else
 #include <dlfcn.h>
+#define FB_EXPORTED __attribute__((visibility("default")))
 #endif
 
 #include "jni.h"
 
 using namespace Firebird;
-using std::auto_ptr;
+namespace fs = std::filesystem;
+using std::array;
+using std::back_inserter;
+using std::cerr;
+using std::endl;
 using std::exception;
 using std::getline;
 using std::ifstream;
-using std::list;
 using std::runtime_error;
 using std::string;
+using std::transform;
+using std::unique_ptr;
 using std::vector;
 
 
@@ -58,7 +67,7 @@ using std::vector;
 
 #ifdef WIN32
 static const char DEFAULT_PATH_SEP = '\\';
-static HMODULE hDllInstance = NULL;
+static HMODULE hDllInstance = nullptr;
 #else
 static const char DEFAULT_PATH_SEP = '/';
 #endif
@@ -67,78 +76,95 @@ static const char DEFAULT_PATH_SEP = '/';
 //------------------------------------------------------------------------------
 
 
+struct FbDeleter
+{
+	void operator()(IDisposable* obj)
+	{
+		obj->dispose();
+	}
+
+	void operator()(IReferenceCounted* obj)
+	{
+		obj->release();
+	}
+};
+
+template <typename T> using FbUniquePtr = unique_ptr<T, FbDeleter>;
+
 template <typename T>
-class FbAuto
+FbUniquePtr<T> fbUnique(T* obj)
+{
+	return FbUniquePtr<T>(obj);
+}
+
+
+template <typename T>
+class JniRef
 {
 public:
-	FbAuto(T* aObj)
-		: obj(aObj)
+	JniRef()
+		: env(nullptr),
+		  obj(nullptr),
+		  global(false)
 	{
 	}
 
-	~FbAuto()
+	JniRef(JNIEnv* env, T obj, bool global)
+		: env(env),
+		  obj(obj),
+		  global(global)
 	{
-		release();
 	}
+
+	JniRef(JniRef&& o) noexcept
+		: env(o.env),
+		  obj(o.obj),
+		  global(o.global)
+	{
+		o.env = nullptr;
+		o.obj = nullptr;
+	}
+
+	~JniRef()
+	{
+		if (obj)
+		{
+			if (global)
+				env->DeleteGlobalRef(obj);
+			else
+				env->DeleteLocalRef(obj);
+		}
+	}
+
+	JniRef(const JniRef&) = delete;
+	JniRef& operator=(const JniRef&) = delete;
 
 public:
-	FbAuto& operator= (T* o)
-	{
-		release();
-		obj = o;
-		return *this;
-	}
-
-	operator T*()
-	{
-		return obj;
-	}
-
-	operator const T*() const
-	{
-		return obj;
-	}
-
-	bool operator !() const
+	bool operator!() const
 	{
 		return !obj;
 	}
 
-	T* operator->()
-	{
-		return obj;
-	}
-
-	const T* operator->() const
+	T get() const
 	{
 		return obj;
 	}
 
 private:
-	void release()
-	{
-		if (obj)
-		{
-			release(obj);
-			obj = NULL;
-		}
-	}
-
-	void release(IReferenceCounted* o)
-	{
-		o->release();
-	}
-
-	void release(IDisposable* o)
-	{
-		o->dispose();
-	}
-
-private:
-	T* obj;
+	JNIEnv* env;
+	T obj;
+	bool global;
 };
 
+template <typename T>
+JniRef<T> jniLocalRef(JNIEnv* env, T ref)
+{
+	return JniRef<T>(env, ref, false);
+}
+
+
 //--------------------------------------
+
 
 class DynLibrary
 {
@@ -191,9 +217,9 @@ private:
 //--------------------------------------
 
 
-static string findJvmLibrary(const char* javaHome);
+static string findJvmLibrary(const string& javaHome);
 static void checkJavaException(JNIEnv* env);
-static jclass findClass(JNIEnv* env, const char* name, bool createGlobalRef);
+static JniRef<jclass> findClass(JNIEnv* env, const char* name, bool createGlobalRef);
 static jmethodID getStaticMethodID(JNIEnv* env, jclass cls, const char* name, const char* signature);
 static jmethodID getMethodID(JNIEnv* env, jclass cls, const char* name, const char* signature);
 static void init();
@@ -203,19 +229,20 @@ string trim(const string& s);
 //--------------------------------------
 
 
-static auto_ptr<DynLibrary> library;
-static IMaster* master;
+static unique_ptr<DynLibrary> library;
+static IMaster* master = nullptr;
 
 
 //--------------------------------------
 
 
-static string findJvmLibrary(const char* javaHome)
+static string findJvmLibrary(const string& javaHome)
 {
 #ifdef WIN32
-	static const char* const DEFAULT_PLACES[] = {
+	static const array<const char*, 2> DEFAULT_PLACES = {
 		"\\jre\\bin\\server\\jvm.dll",
 		"\\jre\\lib\\client\\jvm.dll"
+		//// FIXME: Java 11
 	};
 #else
 #ifdef __amd64
@@ -223,18 +250,19 @@ static string findJvmLibrary(const char* javaHome)
 #else
 #define ARCH_STR "i386"
 #endif
-	static const char* const DEFAULT_PLACES[] = {
+	static const array<const char*, 4> DEFAULT_PLACES = {
 		"/jre/lib/" ARCH_STR "/server/libjvm.so",
-		"/jre/lib/" ARCH_STR "/client/libjvm.so"
+		"/lib/server/libjvm.so",
+		"/jre/lib/" ARCH_STR "/client/libjvm.so",
+		"/lib/client/libjvm.so"
 	};
 #endif
 
-	if (javaHome)
+	if (!javaHome.empty())
 	{
-		for (unsigned i = 0; i < sizeof(DEFAULT_PLACES) / sizeof(DEFAULT_PLACES[0]); ++i)
+		for (const auto defaultPlace : DEFAULT_PLACES)
 		{
-			string path(javaHome);
-			path += DEFAULT_PLACES[i];
+			string path(javaHome + defaultPlace);
 
 			struct stat st;
 			if (stat(path.c_str(), &st) == 0)
@@ -255,7 +283,7 @@ static void checkJavaException(JNIEnv* env)
 
 	if (env->ExceptionCheck())
 	{
-		jthrowable ex = env->ExceptionOccurred();
+		const auto ex = env->ExceptionOccurred();
 
 		if (!initException)
 		{
@@ -269,11 +297,11 @@ static void checkJavaException(JNIEnv* env)
 		env->ExceptionClear();
 
 		string msg;
-		jstring jMsg = (jstring) env->CallObjectMethod(ex, throwableToStringId);
+		const auto jMsg = (jstring) env->CallObjectMethod(ex, throwableToStringId);
 
 		if (jMsg)
 		{
-			const char* msgPtr = env->GetStringUTFChars(jMsg, NULL);
+			const auto* msgPtr = env->GetStringUTFChars(jMsg, nullptr);
 			if (msgPtr)
 			{
 				msg = msgPtr;
@@ -294,33 +322,33 @@ static void checkJavaException(JNIEnv* env)
 
 // Find a Java class and optionally creates a global reference to it.
 // Throw exception in case of error.
-static jclass findClass(JNIEnv* env, const char* name, bool createGlobalRef)
+static JniRef<jclass> findClass(JNIEnv* env, const char* name, bool createGlobalRef)
 {
-	jclass localCls = env->FindClass(name);
-	jclass globalCls = NULL;
+	const auto localCls = env->FindClass(name);
+	jclass cls = nullptr;
 
 	if (localCls)
 	{
 		if (createGlobalRef)
 		{
-			globalCls = (jclass) env->NewGlobalRef(localCls);
+			cls = (jclass) env->NewGlobalRef(localCls);
 			env->DeleteLocalRef(localCls);
 		}
 		else
-			globalCls = localCls;
+			cls = localCls;
 	}
 
-	if (!globalCls)
+	if (!cls)
 		checkJavaException(env);
 
-	return globalCls;
+	return JniRef<jclass>(env, cls, createGlobalRef);
 }
 
 
 // Gets the ID of a static method. Throw exception in case of error.
 static jmethodID getStaticMethodID(JNIEnv* env, jclass cls, const char* name, const char* signature)
 {
-	jmethodID mid = env->GetStaticMethodID(cls, name, signature);
+	const auto mid = env->GetStaticMethodID(cls, name, signature);
 	if (!mid)
 		checkJavaException(env);
 
@@ -331,7 +359,7 @@ static jmethodID getStaticMethodID(JNIEnv* env, jclass cls, const char* name, co
 // Gets the ID of a method. Throw exception in case of error.
 static jmethodID getMethodID(JNIEnv* env, jclass cls, const char* name, const char* signature)
 {
-	jmethodID mid = env->GetMethodID(cls, name, signature);
+	const auto mid = env->GetMethodID(cls, name, signature);
 	if (!mid)
 		checkJavaException(env);
 
@@ -341,22 +369,22 @@ static jmethodID getMethodID(JNIEnv* env, jclass cls, const char* name, const ch
 
 static void init()
 {
-	const char* javaHome = NULL;
-	list<string> jvmArgs;
+	string javaHome;
+	vector<string> jvmArgs;
 
 	try
 	{
-		FbAuto<IStatus> status(master->getStatus());
-		ThrowStatusWrapper st(status);
+		const auto status = fbUnique(master->getStatus());
+		ThrowStatusWrapper st(status.get());
 
-		if (IConfigManager* configManager = master->getConfigManager())
+		if (const auto configManager = master->getConfigManager())
 		{
-			if (FbAuto<IConfig> config = configManager->getPluginConfig("JAVA"))
+			if (const auto config = fbUnique(configManager->getPluginConfig("JAVA")))
 			{
-				if (FbAuto<IConfigEntry> entry = config->find(&st, "JavaHome"))
+				if (const auto entry = fbUnique(config->find(&st, "JavaHome")))
 					javaHome = entry->getValue();
 
-				if (FbAuto<IConfigEntry> entry = config->find(&st, "JvmArgsFile"))
+				if (const auto entry = fbUnique(config->find(&st, "JvmArgsFile")))
 				{
 					ifstream input(entry->getValue());
 					string line;
@@ -372,41 +400,45 @@ static void init()
 			}
 		}
 	}
-	catch (const FbException& e)
+	catch (const FbException&)
 	{
 		throw runtime_error("Error looking for JavaHome in the config file.");
 	}
 
-#ifdef WIN32
-	string libFile;
+	fs::path libFile;
 
+#ifdef WIN32
 	{	// scope
 		char buffer[MAX_PATH];
 		GetModuleFileName(hDllInstance, buffer, sizeof(buffer));
 		libFile = buffer;
 	}
 #else
-	Dl_info dlInfo;
-	if (dladdr((void*) init, &dlInfo) == 0)
-		throw runtime_error("Cannot get the plugin library path.");
+	{	// scope
+		Dl_info dlInfo;
+		if (dladdr((void*) init, &dlInfo) == 0)
+			throw runtime_error("Cannot get the plugin library path.");
 
-	string libFile(dlInfo.dli_fname);
+		libFile = dlInfo.dli_fname;
+	}
 #endif
 
-	string libDir(libFile.substr(0, strrchr(libFile.c_str(), DEFAULT_PATH_SEP) - libFile.c_str()));
-	libDir += DEFAULT_PATH_SEP;
-	libDir += "../jar";
+	fs::path libDir(libFile.parent_path().parent_path() / "jar");
 
-	if (!javaHome)
-		javaHome = getenv("JAVA_HOME");
+	if (javaHome.empty())
+	{
+		auto javaHomeEnv = getenv("JAVA_HOME");
+		if (javaHomeEnv)
+			javaHome = javaHomeEnv;
+	}
 
-	if (!javaHome)
+	if (javaHome.empty())
 		throw runtime_error("JAVA_HOME environment variable is not defined.");
 
-	string jvmLibrary = findJvmLibrary(javaHome);
+	const auto jvmLibrary = findJvmLibrary(javaHome);
 
 	if (jvmLibrary.empty())
-		throw runtime_error("No JVM library found in '" + string(javaHome) + "'.");
+		throw runtime_error("No JVM library found in '" + javaHome + "'.");
 
 	library.reset(new DynLibrary(jvmLibrary));
 
@@ -417,35 +449,33 @@ static void init()
 	jint (JNICALL *createJavaVM)(JavaVM**, void**, void*);
 	library->findSymbol("JNI_CreateJavaVM", createJavaVM);
 
-	//// TODO: Get configuration options.
+	vector<JavaVMOption> vmOptions(jvmArgs.size());
+	transform(jvmArgs.begin(), jvmArgs.end(), vmOptions.begin(),
+		[](auto& arg) { return JavaVMOption{&arg[0], nullptr}; }
+	);
+
+	const auto jvmVersion = JNI_VERSION_1_4;
+
 	JavaVMInitArgs vmArgs;
 	memset(&vmArgs, 0, sizeof(vmArgs));
-	vmArgs.version = JNI_VERSION_1_4;
-	vmArgs.nOptions = jvmArgs.size();
-	vmArgs.options = new JavaVMOption[vmArgs.nOptions];
-
-	list<string>::iterator it = jvmArgs.begin();
-	for (unsigned i = 0; it != jvmArgs.end(); ++i, ++it)
-	{
-		JavaVMOption op = {const_cast<char*>(it->c_str()), NULL};
-		vmArgs.options[i] = op;
-	}
-
+	vmArgs.version = jvmVersion;
+	vmArgs.nOptions = vmOptions.size();
+	vmArgs.options = vmOptions.data();
 	vmArgs.ignoreUnrecognized = JNI_FALSE;
 
-	JavaVM* jvm = NULL;
+	JavaVM* jvm = nullptr;
 
 	// Verify if there is already a JVM created. It happens, for example, using the embedded
 	// engine in Java or if any other plugin has loaded it. If it was already loaded, we
 	// don't do anything with the configured options.
 	jsize jvmCount = 0;
-	jint jvmStatus = getCreatedJavaVMs(&jvm, 1, &jvmCount);
+	getCreatedJavaVMs(&jvm, 1, &jvmCount);
 
 	if (jvmCount == 0)
 	{
 		// There is no JVM. Let's create one.
 		JNIEnv* dummyEnv;
-		jvmStatus = createJavaVM(&jvm, (void**) &dummyEnv, &vmArgs);
+		auto jvmStatus = createJavaVM(&jvm, (void**) &dummyEnv, &vmArgs);
 
 		if (jvmStatus != 0)
 			throw runtime_error("Error creating JVM.");
@@ -453,44 +483,31 @@ static void init()
 
 	JNIEnv* env;
 
-	if (jvm->GetEnv((void**) &env, JNI_VERSION_1_4) == JNI_EDETACHED)
+	if (jvm->GetEnv((void**) &env, jvmVersion) == JNI_EDETACHED)
 	{
-		if (jvm->AttachCurrentThread((void**) &env, NULL) != JNI_OK)
+		if (jvm->AttachCurrentThread((void**) &env, nullptr) != JNI_OK)
 			throw runtime_error("Cannot attach the current thread to the JVM.");
 	}
 
-	//// TODO: Delete local refs.
-
 	// Lets create an URL classloader for the plugin.
 
-	jclass urlCls = findClass(env, "java/net/URL", false);
-	jmethodID urlInitId = getMethodID(env, urlCls, "<init>", "(Ljava/lang/String;)V");
+	const auto urlCls = findClass(env, "java/net/URL", false);
+	const auto urlInitId = getMethodID(env, urlCls.get(), "<init>", "(Ljava/lang/String;)V");
 
-	jclass urlClassLoaderCls = findClass(env, "java/net/URLClassLoader", false);
-	jmethodID urlClassLoaderInitId = getMethodID(env, urlClassLoaderCls, "<init>",
+	const auto urlClassLoaderCls = findClass(env, "java/net/URLClassLoader", false);
+	const auto urlClassLoaderInitId = getMethodID(env, urlClassLoaderCls.get(), "<init>",
 		"([Ljava/net/URL;)V");
-	jmethodID urlClassLoaderLoadClassId = getMethodID(env, urlClassLoaderCls, "loadClass",
+	const auto urlClassLoaderLoadClassId = getMethodID(env, urlClassLoaderCls.get(), "loadClass",
 		"(Ljava/lang/String;Z)Ljava/lang/Class;");
 
 	vector<string> classPathEntries;
 
-	DIR* dir = opendir(libDir.c_str());
-
-	if (!dir)
-		throw runtime_error("Cannot set the classpath. Directory '" + libDir + "' does not exist.");
-
-	dirent* dent;
-
-	while ((dent = readdir(dir)))
+	for (const auto& dirEntry : fs::directory_iterator(libDir))
 	{
-		string name(dent->d_name);
-
-#ifdef WIN32
-		if (name != "." && name != "..")
-#else
-		if (dent->d_type == DT_REG || dent->d_type == DT_LNK)
-#endif
+		if (dirEntry.is_regular_file())
 		{
+			const string name = dirEntry.path().filename().string();
+
 			if (name.length() > 4 && name.substr(name.length() - 4) == ".jar")
 			{
 				string protocol("file://");
@@ -499,65 +516,71 @@ static void init()
 				protocol += "/";
 #endif
 
-				classPathEntries.push_back(protocol + libDir + DEFAULT_PATH_SEP + dent->d_name);
+				classPathEntries.push_back(protocol + dirEntry.path().string());
 			}
 		}
 	}
 
-    closedir(dir);
+	if (classPathEntries.empty())
+		throw runtime_error("Cannot set the classpath. Directory '" + libDir.string() + "' does not exist.");
 
-	jobjectArray urlArray = env->NewObjectArray(classPathEntries.size(), urlCls, NULL);
+	const auto urlArray = jniLocalRef(env, env->NewObjectArray(classPathEntries.size(), urlCls.get(), nullptr));
 	if (!urlArray)
 		checkJavaException(env);
 
-	for (vector<string>::const_iterator i = classPathEntries.begin(); i != classPathEntries.end(); ++i)
-	{
-		jstring str = env->NewStringUTF(i->c_str());
-		if (!str)
-			checkJavaException(env);
+	{	// scope
+		unsigned i = 0;
 
-		jobject url = env->NewObject(urlCls, urlInitId, str);
-		if (!url)
-			checkJavaException(env);
+		for (const auto& classPathEntry : classPathEntries)
+		{
+			const auto str = jniLocalRef(env, env->NewStringUTF(classPathEntry.c_str()));
+			if (!str)
+				checkJavaException(env);
 
-		env->SetObjectArrayElement(urlArray, i - classPathEntries.begin(), url);
-		checkJavaException(env);
+			const auto url = jniLocalRef(env, env->NewObject(urlCls.get(), urlInitId, str.get()));
+			if (!url)
+				checkJavaException(env);
+
+			env->SetObjectArrayElement(urlArray.get(), i++, url.get());
+			checkJavaException(env);
+		}
 	}
 
 	// Call org.firebirdsql.fbjava.impl.Main.initialize(String)
 
-	jstring mainClassName = env->NewStringUTF("org.firebirdsql.fbjava.impl.Main");
+	const auto mainClassName = jniLocalRef(env, env->NewStringUTF("org.firebirdsql.fbjava.impl.Main"));
 	if (!mainClassName)
 		checkJavaException(env);
 
-	jobject classLoader = env->NewObject(urlClassLoaderCls, urlClassLoaderInitId, urlArray);
+	const auto classLoader = jniLocalRef(env,
+		env->NewObject(urlClassLoaderCls.get(), urlClassLoaderInitId, urlArray.get()));
 	if (!classLoader)
 		checkJavaException(env);
 
-	jclass mainCls = (jclass) env->CallObjectMethod(classLoader, urlClassLoaderLoadClassId,
-		mainClassName, true);
+	const auto mainCls = jniLocalRef(env, (jclass) env->CallObjectMethod(classLoader.get(), urlClassLoaderLoadClassId,
+		mainClassName.get(), true));
 	if (!mainCls)
 		checkJavaException(env);
 
-	jmethodID mainInitializeId = getStaticMethodID(env, mainCls, "initialize", "(Ljava/lang/String;)V");
+	const auto mainInitializeId = getStaticMethodID(env, mainCls.get(), "initialize", "(Ljava/lang/String;)V");
 	checkJavaException(env);
 
-	jstring nativeLibrary = env->NewStringUTF(libFile.c_str());
+	const auto nativeLibrary = jniLocalRef(env, env->NewStringUTF(libFile.string().c_str()));
 	if (!nativeLibrary)
 		checkJavaException(env);
 
-	env->CallStaticVoidMethod(mainCls, mainInitializeId, nativeLibrary);
+	env->CallStaticVoidMethod(mainCls.get(), mainInitializeId, nativeLibrary.get());
 	checkJavaException(env);
 }
 
 
-string trim(const string &s)
+string trim(const string& s)
 {
-	string::const_iterator it = s.begin();
+	auto it = s.cbegin();
 	while (it != s.end() && isspace(*it))
 		++it;
 
-	string::const_reverse_iterator rit = s.rbegin();
+	auto rit = s.crbegin();
 	while (rit.base() != it && isspace(*rit))
 		++rit;
 
@@ -565,7 +588,7 @@ string trim(const string &s)
 }
 
 
-extern "C" void /*FB_EXPORTED*/ FB_PLUGIN_ENTRY_POINT(IMaster* master)
+extern "C" void FB_EXPORTED FB_PLUGIN_ENTRY_POINT(IMaster* master)
 {
 	::master = master;
 
@@ -576,7 +599,7 @@ extern "C" void /*FB_EXPORTED*/ FB_PLUGIN_ENTRY_POINT(IMaster* master)
 	catch (const exception& e)
 	{
 		//// FIXME: how to report an error here?
-		fprintf(stderr, "%s\n", e.what());
+		cerr << e.what() << endl;
 	}
 }
 

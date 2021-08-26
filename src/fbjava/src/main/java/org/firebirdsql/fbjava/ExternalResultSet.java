@@ -20,7 +20,7 @@ package org.firebirdsql.fbjava;
 
 
 /**
- * This interface represents a Firebird Externa ResultSet for a selectable stored procedure.
+ * This interface represents a Firebird External ResultSet for a selectable stored procedure.
  *
  * @author <a href="mailto:adrianosf@gmail.com">Adriano dos Santos Fernandes</a>
  */

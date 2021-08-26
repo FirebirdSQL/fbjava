@@ -58,9 +58,9 @@ final class DbPolicy extends Policy
 	private static String securityDatabase;
 	private static FBConnection securityDb;
 	private static PreparedStatement stmt;
-	private static HashMap<String, Subject> userSubjects = new HashMap<String, Subject>();
+	private static final HashMap<String, Subject> userSubjects = new HashMap<>();
 
-	public DbPolicy(String securityDatabase)
+	public DbPolicy(final String securityDatabase)
 	{
 		DbPolicy.securityDatabase = securityDatabase;
 	}
@@ -78,7 +78,7 @@ final class DbPolicy extends Policy
 				securityDb.setAutoCommit(false);
 				securityDb.setReadOnly(true);
 
-				TransactionParameterBuffer tpb = securityDb.createTransactionParameterBuffer();
+				final TransactionParameterBuffer tpb = securityDb.createTransactionParameterBuffer();
 				tpb.addArgument(ISCConstants.isc_tpb_read_committed);
 				tpb.addArgument(ISCConstants.isc_tpb_rec_version);
 				tpb.addArgument(ISCConstants.isc_tpb_read);
@@ -114,12 +114,12 @@ final class DbPolicy extends Policy
 		}
 	}
 
-	static synchronized Subject getUserSubject(IStatus status, IExternalContext context, DbClassLoader classLoader)
-		throws Exception
+	static synchronized Subject getUserSubject(final IStatus status, final IExternalContext context,
+		final DbClassLoader classLoader) throws Exception
 	{
-		String databaseName = classLoader.databaseName;
-		String userName = context.getUserName();
-		String key = databaseName + "\0" + userName;
+		final String databaseName = classLoader.databaseName;
+		final String userName = context.getUserName();
+		final String key = databaseName + "\0" + userName;
 
 		synchronized (userSubjects)
 		{
@@ -127,18 +127,18 @@ final class DbPolicy extends Policy
 			if (subj != null)
 				return subj;
 
-			String roleName;
+			final String roleName;
 
-			try (InternalContext internalContext = InternalContext.create(status, context, null, null, null))
+			try (final InternalContext internalContext = InternalContext.create(status, context, null, null, null))
 			{
-				InternalContext oldContext = InternalContext.set(internalContext);
+				final InternalContext oldContext = InternalContext.set(internalContext);
 				try
 				{
-					try (Connection conn = internalContext.getConnection())
+					try (final Connection conn = internalContext.getConnection())
 					{
-						try (Statement stmt = conn.createStatement())
+						try (final Statement stmt = conn.createStatement())
 						{
-							try (ResultSet rs = stmt.executeQuery("select current_role from rdb$database"))
+							try (final ResultSet rs = stmt.executeQuery("select current_role from rdb$database"))
 							{
 								rs.next();
 								roleName = rs.getString(1);
@@ -152,9 +152,9 @@ final class DbPolicy extends Policy
 				}
 			}
 
-			final HashSet<Principal> principals = new HashSet<Principal>();
+			final HashSet<Principal> principals = new HashSet<>();
 			principals.add(new DbPrincipal(databaseName, roleName, userName));
-			subj = new Subject(true, principals, new HashSet<Object>(), new HashSet<Object>());
+			subj = new Subject(true, principals, new HashSet<>(), new HashSet<>());
 
 			userSubjects.put(key, subj);
 
@@ -178,13 +178,13 @@ final class DbPolicy extends Policy
 			@Override
 			public PermissionCollection run()
 			{
-				for (Principal principal : domain.getPrincipals())
+				for (final Principal principal : domain.getPrincipals())
 				{
 					if (principal instanceof DbPrincipal)
 					{
-						DbPrincipal dbPrincipal = (DbPrincipal) principal;
-						loadPermissions(dbPrincipal.getDatabaseName(), dbPrincipal.getRoleName(), dbPrincipal.getName(),
-							permissions);
+						final DbPrincipal dbPrincipal = (DbPrincipal) principal;
+						loadPermissions(dbPrincipal.getDatabaseName(), dbPrincipal.getRoleName(),
+							dbPrincipal.getName(), permissions);
 					}
 				}
 
@@ -204,14 +204,14 @@ final class DbPolicy extends Policy
 			@Override
 			public Boolean run()
 			{
-				PermissionCollection perms = getPermissions(domain);
+				final PermissionCollection perms = getPermissions(domain);
 				return perms.implies(permission);
 			}
 		});
 	}
 
-	private void loadPermissions(String databaseName, String roleName, String userName,
-		PermissionCollection permissions)
+	private void loadPermissions(final String databaseName, final String roleName, final String userName,
+		final PermissionCollection permissions)
 	{
 		//// TODO: cache
 		synchronized (stmt)
@@ -222,40 +222,40 @@ final class DbPolicy extends Policy
 				stmt.setString(2, userName);
 				stmt.setString(3, roleName);
 
-				try (ResultSet rs = stmt.executeQuery())
+				try (final ResultSet rs = stmt.executeQuery())
 				{
 					while (rs.next())
 					{
 						try
 						{
-							Class<?> clazz = Class.forName(rs.getString(1));
-							String arg1 = rs.getString(2);
-							String arg2 = rs.getString(3);
+							final Class<?> clazz = Class.forName(rs.getString(1));
+							final String arg1 = rs.getString(2);
+							final String arg2 = rs.getString(3);
 
 							if (arg2 != null)
 							{
-								Constructor<?> constr = clazz.getDeclaredConstructor(
+								final Constructor<?> constr = clazz.getDeclaredConstructor(
 									String.class, String.class);
 								permissions.add((Permission) constr.newInstance(arg1, arg2));
 							}
 							else if (arg1 != null)
 							{
-								Constructor<?> constr = clazz.getDeclaredConstructor(String.class);
+								final Constructor<?> constr = clazz.getDeclaredConstructor(String.class);
 								permissions.add((Permission) constr.newInstance(arg1));
 							}
 							else
 							{
-								Constructor<?> constr = clazz.getDeclaredConstructor();
+								final Constructor<?> constr = clazz.getDeclaredConstructor();
 								permissions.add((Permission) constr.newInstance());
 							}
 						}
-						catch (Exception e)
+						catch (final Exception e)
 						{
 						}
 					}
 				}
 			}
-			catch (SQLException e)
+			catch (final SQLException e)
 			{
 			}
 		}

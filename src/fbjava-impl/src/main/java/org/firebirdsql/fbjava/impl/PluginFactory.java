@@ -45,7 +45,7 @@ final class PluginFactory implements IPluginFactoryIntf
 	@Override
 	public IPluginBase createPlugin(IStatus status, IPluginConfig pluginConfig) throws FbException
 	{
-		String securityDatabase;
+		final String securityDatabase;
 
 		IConfig config = pluginConfig.getDefaultConfig(status);
 		try

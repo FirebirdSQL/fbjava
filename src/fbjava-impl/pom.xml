@@ -7,13 +7,16 @@
 	<parent>
 		<groupId>org.firebirdsql.fbjava</groupId>
 		<artifactId>fbjava-parent</artifactId>
-		<version>1.0.0-alpha-1</version>
+		<version>1.0.0-beta-1</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>fbjava-impl</artifactId>
-	<name>fbjava-impl</name>
 	<packaging>jar</packaging>
+
+	<name>${project.groupId}:${project.artifactId}</name>
+	<description>Java plugin for Firebird Database</description>
+	<url>https://github.com/FirebirdSQL/fbjava</url>
 
 	<dependencies>
 		<dependency>
@@ -24,11 +27,7 @@
 
 		<dependency>
 			<groupId>org.firebirdsql.jdbc</groupId>
-			<artifactId>jaybird-jdk18</artifactId>
-			<version>${jaybird.version}</version>
-			<!-- FIXME: Use a Jaybird public release. -->
-			<scope>system</scope>
-			<systemPath>${project.basedir}/../../../jaybird.git/output/lib/jaybird-full-${jaybird.version}.jar</systemPath>
+			<artifactId>jaybird</artifactId>
 		</dependency>
 
 		<dependency>
@@ -41,6 +40,13 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-install-plugin</artifactId>
 				<configuration>
 					<skip>true</skip>
 				</configuration>
