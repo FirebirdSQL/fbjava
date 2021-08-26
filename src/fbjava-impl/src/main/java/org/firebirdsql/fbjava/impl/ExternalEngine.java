@@ -1109,7 +1109,7 @@ final class ExternalEngine implements IExternalEngineIntf
 						if (o == null)
 							return null;
 
-						return (long) ((java.sql.Time) o).getTime();
+						return (long) ((java.sql.Timestamp) o).getTime();
 					}
 
 					@Override
