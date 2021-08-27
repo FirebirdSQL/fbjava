@@ -406,13 +406,18 @@ static void init()
 	}
 
 	fs::path libFile;
-	string fbclientName("fbclient");
+	string fbclientName;
 
 #ifdef WIN32
 	{	// scope
 		char buffer[MAX_PATH];
 		GetModuleFileName(hDllInstance, buffer, sizeof(buffer));
 		libFile = buffer;
+
+		HMODULE hModule = NULL;
+		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCTSTR)master, &hModule);
+		GetModuleFileNameA(hModule, buffer, sizeof(buffer));
+		fbclientName = buffer;
 	}
 #else
 	{	// scope
@@ -421,6 +426,10 @@ static void init()
 			throw runtime_error("Cannot get the plugin library path.");
 
 		libFile = dlInfo.dli_fname;
+
+		if (dladdr((void*) master, &dlInfo) == 0)
+			throw runtime_error("Cannot get the fbclient library path.");
+		fbclientName = dlInfo.dli_fname;
 	}
 #endif
 
@@ -547,7 +556,7 @@ static void init()
 		}
 	}
 
-	// Call org.firebirdsql.fbjava.impl.Main.initialize(String)
+	// Call org.firebirdsql.fbjava.impl.Main.initialize(String, String, Pointer)
 
 	const auto mainClassName = jniLocalRef(env, env->NewStringUTF("org.firebirdsql.fbjava.impl.Main"));
 	if (!mainClassName)
@@ -586,12 +595,11 @@ static void init()
 		checkJavaException(env);
 
 	const auto jnaPointerInitId = getMethodID(env, jnaPointerCls.get(), "<init>", "(J)V");
-	const auto masterPointer = env->NewObject(jnaPointerCls.get(), jnaPointerInitId, jmaster);
+	const auto masterPointer =  jniLocalRef(env, env->NewObject(jnaPointerCls.get(), jnaPointerInitId, jmaster));
 	if (!masterPointer)
 		checkJavaException(env);
-	const auto jMasterPtr = jniLocalRef(env, masterPointer);
 
-	env->CallStaticVoidMethod(mainCls.get(), mainInitializeId, nativeLibrary.get(), fbclientLibrary.get(), jMasterPtr.get());
+	env->CallStaticVoidMethod(mainCls.get(), mainInitializeId, nativeLibrary.get(), fbclientLibrary.get(), masterPointer.get());
 	checkJavaException(env);
 }
 
