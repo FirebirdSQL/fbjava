@@ -66,11 +66,9 @@ using std::vector;
 
 
 #ifdef WIN32
-static const char DEFAULT_SEPARATOR = '\\';
 static const char DEFAULT_PATH_SEPARATOR = ';';
 static HMODULE hDllInstance = nullptr;
 #else
-static const char DEFAULT_SEPARATOR = '/';
 static const char DEFAULT_PATH_SEPARATOR = ':';
 #endif
 
@@ -373,7 +371,7 @@ static void init()
 {
 	string javaHome;
 	vector<string> jvmArgs;
-	string jnaLibPathOpt("-Djna.library.path");
+	const string jnaLibPathOpt("-Djna.library.path=");
 
 	try
 	{
@@ -414,7 +412,8 @@ static void init()
 #else
 	jnaLibPath = master->getConfigManager()->getDirectory(IConfigManager::DIR_LIB);
 #endif
-	for(auto& arg : jvmArgs)
+
+	for (auto& arg : jvmArgs)
 	{
 		if (arg.length() >= jnaLibPathOpt.length() && arg.compare(0, jnaLibPathOpt.length(), jnaLibPathOpt) == 0)
 		{
@@ -423,15 +422,9 @@ static void init()
 			jnaLibPath.clear();
 		}
 	}
+
 	if (!jnaLibPath.empty())
-	{
-		{ // scope
-			string jvmLibPath(jnaLibPathOpt);
-			jvmLibPath.append(1, '=');
-			jvmLibPath.append(jnaLibPath);
-			jvmArgs.push_back(jvmLibPath);
-		}
-	}
+		jvmArgs.push_back(jnaLibPathOpt + jnaLibPath);
 
 	fs::path libFile;
 
