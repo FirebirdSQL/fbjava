@@ -23,6 +23,8 @@ import org.firebirdsql.fbjava.impl.FbClientLibrary.IPluginManager;
 import org.firebirdsql.fbjava.impl.FbClientLibrary.IUtil;
 
 import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
 
 
 final class Main
@@ -31,13 +33,12 @@ final class Main
 	public static IMaster master;
 	public static IUtil util;
 
-	public static void initialize(final String nativeLibrary) throws ClassNotFoundException
+	public static void initialize(final String nativeLibrary, final String fbclientLibrary, final Pointer masterPtr) throws ClassNotFoundException
 	{
-		//// FIXME: Receive the client library name from the plugin.
-		library = (FbClientLibrary) Native.load("fbclient", FbClientLibrary.class);
+		library = (FbClientLibrary) Native.load(fbclientLibrary, FbClientLibrary.class);
 
-		//// FIXME: Receive the master interface from the plugin.
-		master = library.fb_get_master_interface();
+		master = Structure.newInstance(IMaster.class, masterPtr);
+		master.read();
 		util = master.getUtilInterface();
 
 		// We assume the plugin is used with a UTF-8 connection charset, so
