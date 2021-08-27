@@ -414,8 +414,7 @@ static void init()
 #else
 	jnaLibPath = master->getConfigManager()->getDirectory(IConfigManager::DIR_LIB);
 #endif
-	transform(jvmArgs.begin(), jvmArgs.end(), jvmArgs.begin(),
-		[&jnaLibPathOpt, &jnaLibPath](string& arg)
+	for(auto& arg : jvmArgs)
 	{
 		if (arg.length() >= jnaLibPathOpt.length() && arg.compare(0, jnaLibPathOpt.length(), jnaLibPathOpt) == 0)
 		{
@@ -423,9 +422,7 @@ static void init()
 			arg.append(jnaLibPath);
 			jnaLibPath.clear();
 		}
-		return arg;
 	}
-	);
 	if (!jnaLibPath.empty())
 	{
 		{ // scope
