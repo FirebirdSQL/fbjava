@@ -414,9 +414,9 @@ static void init()
 		GetModuleFileName(hDllInstance, buffer, sizeof(buffer));
 		libFile = buffer;
 
-		HMODULE hModule = NULL;
-		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCTSTR)master, &hModule);
-		GetModuleFileNameA(hModule, buffer, sizeof(buffer));
+		HMODULE hMasterModule = nullptr;
+		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCTSTR) master, &hMasterModule);
+		GetModuleFileName(hMasterModule, buffer, sizeof(buffer));
 		fbclientName = buffer;
 	}
 #else
@@ -429,6 +429,7 @@ static void init()
 
 		if (dladdr((void*) master, &dlInfo) == 0)
 			throw runtime_error("Cannot get the fbclient library path.");
+
 		fbclientName = dlInfo.dli_fname;
 	}
 #endif
