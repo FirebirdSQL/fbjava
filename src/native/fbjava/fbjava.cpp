@@ -66,10 +66,10 @@ using std::vector;
 
 
 #ifdef WIN32
-static const char DEFAULT_PATH_SEP = '\\';
+static const char DEFAULT_PATH_SEPARATOR = ';';
 static HMODULE hDllInstance = nullptr;
 #else
-static const char DEFAULT_PATH_SEP = '/';
+static const char DEFAULT_PATH_SEPARATOR = ':';
 #endif
 
 
@@ -371,6 +371,7 @@ static void init()
 {
 	string javaHome;
 	vector<string> jvmArgs;
+	const string jnaLibPathOpt("-Djna.library.path=");
 
 	try
 	{
@@ -404,6 +405,26 @@ static void init()
 	{
 		throw runtime_error("Error looking for JavaHome in the config file.");
 	}
+
+	string jnaLibPath;
+#ifdef WIN32
+	jnaLibPath = master->getConfigManager()->getRootDirectory();
+#else
+	jnaLibPath = master->getConfigManager()->getDirectory(IConfigManager::DIR_LIB);
+#endif
+
+	for (auto& arg : jvmArgs)
+	{
+		if (arg.length() >= jnaLibPathOpt.length() && arg.compare(0, jnaLibPathOpt.length(), jnaLibPathOpt) == 0)
+		{
+			arg.append(1, DEFAULT_PATH_SEPARATOR);
+			arg.append(jnaLibPath);
+			jnaLibPath.clear();
+		}
+	}
+
+	if (!jnaLibPath.empty())
+		jvmArgs.push_back(jnaLibPathOpt + jnaLibPath);
 
 	fs::path libFile;
 	string fbclientName;
